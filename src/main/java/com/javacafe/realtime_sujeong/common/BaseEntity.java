@@ -17,6 +17,5 @@ public class BaseEntity {
     LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
     LocalDateTime updatedAt;
 }
