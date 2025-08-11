@@ -25,6 +25,11 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> findUserById(@PathVariable long id) {
+        return ResponseEntity.ok(userService.findUserById(id));
+    }
+
     @GetMapping("/{email}")
     public ResponseEntity<UserResponse> findUserByEmail(@PathVariable String email) {
         return ResponseEntity.ok(userService.findUserByEmail(email));
@@ -42,9 +47,9 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{email}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String email) {
-        userService.deleteUserByEmail(email);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable long id) {
+        userService.deleteUserById(id);
         return ResponseEntity.ok().build();
     }
 

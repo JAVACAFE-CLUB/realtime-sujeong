@@ -138,22 +138,22 @@ class UserServiceTest {
     void 유저_삭제_성공() {
         // given
         User user = fixtureMonkey.giveMeOne(User.class);
-        given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.of(user));
+        given(userRepository.findById(user.getId())).willReturn(Optional.of(user));
 
         // when
-        userService.deleteUserByEmail(user.getEmail());
+        userService.deleteUserById(user.getId());
 
         // then
         verify(userRepository).delete(user);
     }
 
     @Test
-    void 유저_삭제_실패_이메일_없음() {
+    void 유저_삭제_실패_아이디_없음() {
         // given
-        given(userRepository.findByEmail("not@found.com")).willReturn(Optional.empty());
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
 
         // then
-        assertThatThrownBy(() -> userService.deleteUserByEmail("not@found.com"))
+        assertThatThrownBy(() -> userService.deleteUserById(999))
                 .isInstanceOf(NoSuchElementException.class);
     }
 }

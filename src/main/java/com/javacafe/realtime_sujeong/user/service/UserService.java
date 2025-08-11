@@ -24,16 +24,13 @@ public class UserService {
     public List<UserResponse> findAllUsers() {
         List<User> users = userRepository.findAll();
         List<UserResponse> userResponseList = new ArrayList<>();
-        users.forEach(user -> userResponseList.add(
-                        UserResponse.builder()
-                                .email(user.getEmail())
-                                .name(user.getName())
-                                .createdAt(user.getCreatedAt())
-                                .updatedAt(user.getUpdatedAt())
-                                .build()
-                )
-        );
+        users.forEach(user -> userResponseList.add(UserResponse.toEntity(user)));
         return userResponseList;
+    }
+
+    public UserResponse findUserById(long id) {
+        User user = userRepository.findById(id).orElseThrow();
+        return UserResponse.toEntity(user);
     }
 
     public UserResponse findUserByEmail(String email) {
@@ -59,8 +56,8 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUserByEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow();
+    public void deleteUserById(long id) {
+        User user = userRepository.findById(id).orElseThrow();
         userRepository.delete(user);
     }
 
