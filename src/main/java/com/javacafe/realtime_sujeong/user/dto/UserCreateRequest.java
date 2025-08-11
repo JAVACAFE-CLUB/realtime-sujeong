@@ -5,9 +5,13 @@ import com.javacafe.realtime_sujeong.user.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
+@AllArgsConstructor
 public class UserCreateRequest {
 
     @NotBlank(message = "이메일은 필수입니다.")
