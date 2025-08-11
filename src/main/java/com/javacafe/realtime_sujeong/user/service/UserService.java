@@ -33,16 +33,6 @@ public class UserService {
         return UserResponse.toEntity(user);
     }
 
-    public UserResponse findUserByEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow();
-        return UserResponse.builder()
-                .email(user.getEmail())
-                .name(user.getName())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
-    }
-
     @Transactional
     public void createUser(UserCreateRequest userCreateRequest) {
         checkEmail(userCreateRequest.getEmail());
@@ -51,7 +41,7 @@ public class UserService {
 
     @Transactional
     public void updateUser(UserUpdateRequest userUpdateRequest) {
-        User user = userRepository.findByEmail(userUpdateRequest.getEmail()).orElseThrow();
+        User user = userRepository.findById(userUpdateRequest.getId()).orElseThrow();
         user.update(userUpdateRequest);
     }
 
@@ -61,6 +51,10 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    /**
+     * email 중복 확인
+     * 이미 존재하는 email인 경우 예외 발생
+     */
     private void checkEmail(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("이미 존재하는 이메일입니다.");

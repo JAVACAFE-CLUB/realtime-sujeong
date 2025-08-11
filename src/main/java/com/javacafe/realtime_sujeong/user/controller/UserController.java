@@ -30,11 +30,6 @@ public class UserController {
         return ResponseEntity.ok(userService.findUserById(id));
     }
 
-    @GetMapping("/{email}")
-    public ResponseEntity<UserResponse> findUserByEmail(@PathVariable String email) {
-        return ResponseEntity.ok(userService.findUserByEmail(email));
-    }
-
     @PostMapping
     public ResponseEntity<Void> createUser(@RequestBody @Valid UserCreateRequest userCreateRequest) {
         userService.createUser(userCreateRequest);

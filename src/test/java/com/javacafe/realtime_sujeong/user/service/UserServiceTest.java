@@ -55,30 +55,6 @@ class UserServiceTest {
     }
 
     @Test
-    void 이메일로_유저_조회_성공() {
-        // given
-        User user = fixtureMonkey.giveMeOne(User.class);
-        given(userRepository.findByEmail(user.getEmail())).willReturn(Optional.of(user));
-
-        // when
-        var result = userService.findUserByEmail(user.getEmail());
-
-        // then
-        assertThat(result.email()).isEqualTo(user.getEmail());
-        assertThat(result.name()).isEqualTo(user.getName());
-    }
-
-    @Test
-    void 이메일로_유저_조회_실패() {
-        // given
-        given(userRepository.findByEmail("noone@none.com")).willReturn(Optional.empty());
-
-        // then
-        assertThatThrownBy(() -> userService.findUserByEmail("noone@none.com"))
-                .isInstanceOf(NoSuchElementException.class); // or custom exception
-    }
-
-    @Test
     void 유저_생성_성공() {
         // given
         UserCreateRequest request = fixtureMonkey.giveMeBuilder(UserCreateRequest.class)
@@ -121,10 +97,10 @@ class UserServiceTest {
         // given
         User user = fixtureMonkey.giveMeOne(User.class);
         UserUpdateRequest request = fixtureMonkey.giveMeBuilder(UserUpdateRequest.class)
-                .set("email", user.getEmail())
+                .set("id", user.getId())
                 .sample();
 
-        given(userRepository.findByEmail(request.getEmail())).willReturn(Optional.of(user));
+        given(userRepository.findById(request.getId())).willReturn(Optional.of(user));
 
         // when
         userService.updateUser(request);
