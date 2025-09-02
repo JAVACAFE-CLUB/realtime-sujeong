@@ -3,6 +3,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.kafka:spring-kafka'
     
+    // 크롤링 및 HTTP 클라이언트
+    implementation 'org.jsoup:jsoup:1.17.2'
+    
+    // XML 파싱
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+    
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.testcontainers:kafka'
 }
