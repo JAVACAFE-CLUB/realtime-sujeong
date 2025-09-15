@@ -20,7 +20,8 @@ server:
 
 logging:
   level:
-    com.javacafe.realtime_sujeong.collector.crawlerhtml.NaverRssNewsService: DEBUG
+    com.javacafe.realtime_sujeong.collector.domain.rss: DEBUG
+    com.javacafe.realtime_sujeong.collector.domain.wiki: DEBUG
     root: INFO
 
 # MinIO 설정
