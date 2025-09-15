@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    platform: linux/amd64   # <- M1/M2 맥북에서 필수
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    platform: linux/amd64
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"   # 외부 접속용
+      - "29092:29092" # 내부 접속용
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # Kafka 토픽 자동 생성 서비스
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.0
+    platform: linux/amd64
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: |
+      bash -c "
+        # 토픽 생성 (존재하지 않는 경우에만)
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic wiki-data --partitions 3 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic naver-rss-news --partitions 3 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic raw-data-topic --partitions 3 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic news-data-topic --partitions 3 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic social-data-topic --partitions 3 --replication-factor 1
+        
+        # 생성된 토픽 확인
+        echo 'Created topics:'
+        kafka-topics --bootstrap-server kafka:29092 --list
+        
+        # 토픽 상세 정보 확인
+        echo 'Topic details:'
+        kafka-topics --bootstrap-server kafka:29092 --describe --topic wiki-data
+        kafka-topics --bootstrap-server kafka:29092 --describe --topic naver-rss-news
+      "
+    restart: "no"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    platform: linux/amd64   # <- M1/M2 맥북에서 필수
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"  # API (S3 호환)
+      - "9001:9001"  # Web UI
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    volumes:
+      - ./minio_data:/data
+    command: server /data --console-address ":9001"
