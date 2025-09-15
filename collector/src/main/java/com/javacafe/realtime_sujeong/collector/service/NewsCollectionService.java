@@ -1,7 +1,7 @@
 package com.javacafe.realtime_sujeong.collector.service;
 
-import com.javacafe.realtime_sujeong.collector.crawlerhtml.NaverRssNewsService;
-import com.javacafe.realtime_sujeong.collector.crawlerdoc.WikimediaMinioService;
+import com.javacafe.realtime_sujeong.collector.domain.rss.RssNewsCollector;
+import com.javacafe.realtime_sujeong.collector.domain.wiki.WikiDataCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,15 +11,15 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class NewsCollectionService {
 
-    private final NaverRssNewsService naverRssNewsService;
-    private final WikimediaMinioService wikimediaMinioService;
+    private final RssNewsCollector rssNewsCollector;
+    private final WikiDataCollector wikiDataCollector;
 
     public void collectRssNews() {
         log.info("RSS 뉴스 수집 작업 시작");
         long startTime = System.currentTimeMillis();
 
         try {
-            naverRssNewsService.collectAllRssNews();
+            rssNewsCollector.collectAllRssNews();
         } catch (Exception e) {
             log.error("RSS 뉴스 수집 중 오류 발생", e);
         } finally {
@@ -33,7 +33,7 @@ public class NewsCollectionService {
         long startTime = System.currentTimeMillis();
 
         try {
-            wikimediaMinioService.processWikimediaData();
+            wikiDataCollector.processWikimediaData();
         } catch (Exception e) {
             log.error("Wikimedia 데이터 수집 중 오류 발생", e);
         } finally {
