@@ -1,0 +1,97 @@
+package javacafe.realtime_sujeong.collection.rss.service;
+
+import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
+import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
+import javacafe.realtime_sujeong.collection.rss.collector.parser.RssFeedParser;
+import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
+import javacafe.realtime_sujeong.collection.rss.domain.RssRawDataRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * RSS 수집 서비스
+ * RSS 피드를 파싱하고 MongoDB에 저장
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class RssCollectionService {
+
+    private final RssFeedParser rssFeedParser;
+    private final RssRawDataRepository rssRawDataRepository;
+
+    /**
+     * RSS 피드 수집
+     *
+     * @param feedUrl RSS 피드 URL
+     * @param source 데이터 소스 (언론사)
+     * @return 수집 결과 (저장된 개수, 중복 개수)
+     */
+    @Transactional
+    public CollectionResult collectFeed(String feedUrl, String source) {
+        log.info("RSS 피드 수집 시작 - URL: {}, Source: {}", feedUrl, source);
+
+        // 1. RSS 피드 파싱
+        List<RssItemDto> items = rssFeedParser.parse(feedUrl, source);
+        log.info("파싱된 아이템 개수: {}", items.size());
+
+        int savedCount = 0;
+        int duplicateCount = 0;
+
+        // 2. 각 아이템 저장
+        for (RssItemDto item : items) {
+            try {
+                // DataId 생성 (link + pubDate)
+                String dataId = DataIdGenerator.generateRssDataId(
+                        item.getLink(),
+                        item.getPubDate().toString()
+                );
+
+                // 중복 체크
+                if (rssRawDataRepository.existsByDataId(dataId)) {
+                    log.debug("중복 데이터 스킵 - dataId: {}", dataId);
+                    duplicateCount++;
+                    continue;
+                }
+
+                // MongoDB 저장
+                RssRawData rssRawData = item.toEntity(dataId);
+                rssRawDataRepository.save(rssRawData);
+
+                log.debug("데이터 저장 완료 - dataId: {}, title: {}", dataId, item.getTitle());
+                savedCount++;
+
+            } catch (Exception e) {
+                log.error("아이템 저장 실패 - title: {}", item.getTitle(), e);
+            }
+        }
+
+        CollectionResult result = new CollectionResult(
+                items.size(),
+                savedCount,
+                duplicateCount
+        );
+
+        log.info("RSS 피드 수집 완료 - {}", result);
+        return result;
+    }
+
+    /**
+     * 수집 결과
+     */
+    public record CollectionResult(
+            int totalCount,      // 전체 파싱된 개수
+            int savedCount,      // 저장된 개수
+            int duplicateCount   // 중복된 개수
+    ) {
+        @Override
+        public String toString() {
+            return String.format("총 %d개 (저장: %d, 중복: %d)",
+                    totalCount, savedCount, duplicateCount);
+        }
+    }
+}

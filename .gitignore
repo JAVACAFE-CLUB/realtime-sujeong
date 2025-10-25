@@ -47,3 +47,7 @@ out/
 
 ### Reference Data (large files) ###
 **/reference/
+
+### Environment Config (sensitive info) ###
+**/application-local.properties
+**/application-local.yml
