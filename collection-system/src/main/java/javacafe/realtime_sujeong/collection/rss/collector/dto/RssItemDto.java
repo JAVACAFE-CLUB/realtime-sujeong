@@ -34,6 +34,11 @@ public class RssItemDto {
     private String description;
 
     /**
+     * 기사 본문
+     */
+    private String content;
+
+    /**
      * 데이터 소스 (언론사)
      */
     private String source;
@@ -49,6 +54,7 @@ public class RssItemDto {
                 .link(link)
                 .pubDate(pubDate)
                 .description(description)
+                .content(content)
                 .build();
     }
 }

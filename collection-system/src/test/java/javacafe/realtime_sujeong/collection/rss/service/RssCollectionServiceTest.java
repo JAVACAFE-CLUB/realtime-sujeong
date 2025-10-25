@@ -1,5 +1,6 @@
 package javacafe.realtime_sujeong.collection.rss.service;
 
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
 import javacafe.realtime_sujeong.collection.rss.collector.parser.RssFeedParser;
 import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
@@ -29,6 +30,9 @@ class RssCollectionServiceTest {
     private RssFeedParser rssFeedParser;
 
     @Mock
+    private ArticleContentCrawler articleContentCrawler;
+
+    @Mock
     private RssRawDataRepository rssRawDataRepository;
 
     @InjectMocks
@@ -48,6 +52,7 @@ class RssCollectionServiceTest {
         );
 
         given(rssFeedParser.parse(feedUrl, source)).willReturn(mockItems);
+        given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
         given(rssRawDataRepository.existsByDataId(anyString())).willReturn(false);
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
 
@@ -60,6 +65,7 @@ class RssCollectionServiceTest {
         assertThat(result.duplicateCount()).isEqualTo(0);
 
         verify(rssFeedParser).parse(feedUrl, source);
+        verify(articleContentCrawler, times(3)).crawl(anyString(), anyString());
         verify(rssRawDataRepository, times(3)).existsByDataId(anyString());
         verify(rssRawDataRepository, times(3)).save(any(RssRawData.class));
     }
@@ -78,6 +84,7 @@ class RssCollectionServiceTest {
         );
 
         given(rssFeedParser.parse(feedUrl, source)).willReturn(mockItems);
+        given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
 
         // 첫 번째와 세 번째는 중복
         given(rssRawDataRepository.existsByDataId(anyString()))
@@ -96,6 +103,7 @@ class RssCollectionServiceTest {
         assertThat(result.duplicateCount()).isEqualTo(2);
 
         verify(rssFeedParser).parse(feedUrl, source);
+        verify(articleContentCrawler, times(1)).crawl(anyString(), anyString());
         verify(rssRawDataRepository, times(3)).existsByDataId(anyString());
         verify(rssRawDataRepository, times(1)).save(any(RssRawData.class));
     }

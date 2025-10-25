@@ -63,6 +63,11 @@ public class RssRawData {
     private String description;
 
     /**
+     * 기사 본문 (크롤링)
+     */
+    private String content;
+
+    /**
      * 수집 일시
      */
     @CreatedDate
@@ -81,13 +86,14 @@ public class RssRawData {
 
     @Builder
     public RssRawData(String dataId, String source, String title,
-                      String link, LocalDateTime pubDate, String description) {
+                      String link, LocalDateTime pubDate, String description, String content) {
         this.dataId = dataId;
         this.source = source;
         this.title = title;
         this.link = link;
         this.pubDate = pubDate;
         this.description = description;
+        this.content = content;
         this.status = DataStatus.COLLECTED;
         this.collectedAt = LocalDateTime.now();
     }

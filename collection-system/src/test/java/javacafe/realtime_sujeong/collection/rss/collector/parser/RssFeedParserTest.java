@@ -1,6 +1,7 @@
 package javacafe.realtime_sujeong.collection.rss.collector.parser;
 
 import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +13,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("RssFeedParser 테스트")
 class RssFeedParserTest {
 
-    private final RssFeedParser parser = new RssFeedParser();
+    private RssFeedParser parser;
+
+    @BeforeEach
+    void setUp() {
+        parser = new RssFeedParser();
+    }
 
     @Test
     @DisplayName("RSS 피드 파싱 - 실제 조선일보 RSS (통합 테스트)")

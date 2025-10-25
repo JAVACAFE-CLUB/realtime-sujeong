@@ -1,6 +1,7 @@
 package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
 import javacafe.realtime_sujeong.collection.rss.collector.parser.RssFeedParser;
 import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
@@ -14,7 +15,7 @@ import java.util.List;
 
 /**
  * RSS 수집 서비스
- * RSS 피드를 파싱하고 MongoDB에 저장
+ * RSS 피드를 파싱하고 기사 본문을 크롤링하여 MongoDB에 저장
  */
 @Slf4j
 @Service
@@ -22,6 +23,7 @@ import java.util.List;
 public class RssCollectionService {
 
     private final RssFeedParser rssFeedParser;
+    private final ArticleContentCrawler articleContentCrawler;
     private final RssRawDataRepository rssRawDataRepository;
 
     /**
@@ -42,7 +44,7 @@ public class RssCollectionService {
         int savedCount = 0;
         int duplicateCount = 0;
 
-        // 2. 각 아이템 저장
+        // 2. 각 아이템 처리 (본문 크롤링 + 저장)
         for (RssItemDto item : items) {
             try {
                 // DataId 생성 (link + pubDate)
@@ -58,11 +60,25 @@ public class RssCollectionService {
                     continue;
                 }
 
+                // 기사 본문 크롤링
+                String content = articleContentCrawler.crawl(item.getLink(), source);
+
+                // DTO에 본문 추가
+                RssItemDto itemWithContent = RssItemDto.builder()
+                        .title(item.getTitle())
+                        .link(item.getLink())
+                        .pubDate(item.getPubDate())
+                        .description(item.getDescription())
+                        .content(content)  // 크롤링한 본문
+                        .source(item.getSource())
+                        .build();
+
                 // MongoDB 저장
-                RssRawData rssRawData = item.toEntity(dataId);
+                RssRawData rssRawData = itemWithContent.toEntity(dataId);
                 rssRawDataRepository.save(rssRawData);
 
-                log.debug("데이터 저장 완료 - dataId: {}, title: {}", dataId, item.getTitle());
+                log.debug("데이터 저장 완료 - dataId: {}, title: {}, content: {} 글자",
+                        dataId, item.getTitle(), content.length());
                 savedCount++;
 
             } catch (Exception e) {
