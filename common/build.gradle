@@ -1,0 +1,16 @@
+// Common 모듈은 라이브러리로만 사용 (실행 가능한 애플리케이션 아님)
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+dependencies {
+    // Spring Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+}

@@ -1,0 +1,21 @@
+// 아직 구현되지 않은 모듈 - bootJar 비활성화
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+dependencies {
+    // Common 모듈 의존성
+    implementation project(':common')
+
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Spring Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+}
