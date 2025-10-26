@@ -2,6 +2,8 @@ package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
 import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
 import javacafe.realtime_sujeong.collection.rss.collector.parser.RssFeedParser;
 import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
@@ -11,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * RSS 수집 서비스
@@ -24,17 +28,21 @@ public class RssCollectionService {
 
     private final RssFeedParser rssFeedParser;
     private final ArticleContentCrawler articleContentCrawler;
+    private final ArticleCrawlingStrategyFactory strategyFactory;
     private final RssRawDataRepository rssRawDataRepository;
 
     /**
      * RSS 피드 수집
      *
-     * @param feedUrl RSS 피드 URL
      * @param source 데이터 소스 (언론사)
      * @return 수집 결과 (저장된 개수, 중복 개수)
      */
     @Transactional
-    public CollectionResult collectFeed(String feedUrl, String source) {
+    public CollectionResult collectFeed(String source) {
+        // 소스에 맞는 전략 획득 (feedUrl 포함)
+        ArticleCrawlingStrategy strategy = strategyFactory.getStrategy(source);
+        String feedUrl = strategy.getFeedUrl();
+
         log.info("RSS 피드 수집 시작 - URL: {}, Source: {}", feedUrl, source);
 
         // 1. RSS 피드 파싱
@@ -94,6 +102,36 @@ public class RssCollectionService {
 
         log.info("RSS 피드 수집 완료 - {}", result);
         return result;
+    }
+
+    /**
+     * 수집 통계 조회
+     *
+     * @return 통계 정보 (전체 개수, 소스별 개수 등)
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStats() {
+        log.debug("통계 조회");
+
+        long totalCount = rssRawDataRepository.count();
+        List<String> sources = rssRawDataRepository.findAll()
+                .stream()
+                .map(RssRawData::getSource)
+                .distinct()
+                .toList();
+
+        Map<String, Long> countBySource = new HashMap<>();
+        for (String source : sources) {
+            long count = rssRawDataRepository.countBySource(source);
+            countBySource.put(source, count);
+        }
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalCount", totalCount);
+        stats.put("sources", sources);
+        stats.put("countBySource", countBySource);
+
+        return stats;
     }
 
     /**

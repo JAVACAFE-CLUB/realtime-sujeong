@@ -1,6 +1,8 @@
 package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
+import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
 import javacafe.realtime_sujeong.collection.rss.collector.dto.RssItemDto;
 import javacafe.realtime_sujeong.collection.rss.collector.parser.RssFeedParser;
 import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
@@ -33,6 +35,12 @@ class RssCollectionServiceTest {
     private ArticleContentCrawler articleContentCrawler;
 
     @Mock
+    private ArticleCrawlingStrategyFactory strategyFactory;
+
+    @Mock
+    private ArticleCrawlingStrategy mockStrategy;
+
+    @Mock
     private RssRawDataRepository rssRawDataRepository;
 
     @InjectMocks
@@ -51,19 +59,23 @@ class RssCollectionServiceTest {
                 createMockItem("제목3", "https://example.com/3", source)
         );
 
+        given(strategyFactory.getStrategy(source)).willReturn(mockStrategy);
+        given(mockStrategy.getFeedUrl()).willReturn(feedUrl);
         given(rssFeedParser.parse(feedUrl, source)).willReturn(mockItems);
         given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
         given(rssRawDataRepository.existsByDataId(anyString())).willReturn(false);
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(result.totalCount()).isEqualTo(3);
         assertThat(result.savedCount()).isEqualTo(3);
         assertThat(result.duplicateCount()).isEqualTo(0);
 
+        verify(strategyFactory).getStrategy(source);
+        verify(mockStrategy).getFeedUrl();
         verify(rssFeedParser).parse(feedUrl, source);
         verify(articleContentCrawler, times(3)).crawl(anyString(), anyString());
         verify(rssRawDataRepository, times(3)).existsByDataId(anyString());
@@ -83,6 +95,8 @@ class RssCollectionServiceTest {
                 createMockItem("제목3", "https://example.com/3", source)
         );
 
+        given(strategyFactory.getStrategy(source)).willReturn(mockStrategy);
+        given(mockStrategy.getFeedUrl()).willReturn(feedUrl);
         given(rssFeedParser.parse(feedUrl, source)).willReturn(mockItems);
         given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
 
@@ -95,7 +109,7 @@ class RssCollectionServiceTest {
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(result.totalCount()).isEqualTo(3);
@@ -115,10 +129,12 @@ class RssCollectionServiceTest {
         String feedUrl = "https://example.com/rss";
         String source = "test";
 
+        given(strategyFactory.getStrategy(source)).willReturn(mockStrategy);
+        given(mockStrategy.getFeedUrl()).willReturn(feedUrl);
         given(rssFeedParser.parse(feedUrl, source)).willReturn(List.of());
 
         // when
-        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(result.totalCount()).isEqualTo(0);

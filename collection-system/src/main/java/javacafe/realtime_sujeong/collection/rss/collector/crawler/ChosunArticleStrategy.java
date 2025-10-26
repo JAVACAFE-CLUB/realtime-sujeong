@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class ChosunArticleStrategy extends BaseArticleCrawlingStrategy {
 
     private static final String SOURCE = "chosun";
+    private static final String FEED_URL = "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml";
 
     @Override
     protected String getContentSelector() {
@@ -27,5 +28,10 @@ public class ChosunArticleStrategy extends BaseArticleCrawlingStrategy {
     @Override
     public String getSupportedSource() {
         return SOURCE;
+    }
+
+    @Override
+    public String getFeedUrl() {
+        return FEED_URL;
     }
 }

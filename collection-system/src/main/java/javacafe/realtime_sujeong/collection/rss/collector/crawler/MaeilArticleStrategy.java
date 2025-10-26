@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class MaeilArticleStrategy extends BaseArticleCrawlingStrategy {
 
     private static final String SOURCE = "maeil";
+    private static final String FEED_URL = "https://www.mk.co.kr/rss/30000001/";
 
     @Override
     protected String getContentSelector() {
@@ -27,5 +28,10 @@ public class MaeilArticleStrategy extends BaseArticleCrawlingStrategy {
     @Override
     public String getSupportedSource() {
         return SOURCE;
+    }
+
+    @Override
+    public String getFeedUrl() {
+        return FEED_URL;
     }
 }

@@ -49,11 +49,10 @@ class RssCollectionServiceIntegrationTest {
     @DisplayName("실제 RSS 피드 수집 및 MongoDB 저장 - 조선일보")
     void collectFeed_RealChosunRss_SaveToMongoDB() {
         // given
-        String feedUrl = "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml";
         String source = "chosun";
 
         // when
-        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(result.totalCount()).isGreaterThan(0);
@@ -78,14 +77,13 @@ class RssCollectionServiceIntegrationTest {
     @DisplayName("중복 수집 방지 - 같은 피드 두 번 수집")
     void collectFeed_TwiceSameFeed_PreventDuplicates() {
         // given
-        String feedUrl = "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml";
         String source = "chosun";
 
         // when - 첫 번째 수집
-        RssCollectionService.CollectionResult firstResult = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult firstResult = rssCollectionService.collectFeed(source);
 
         // when - 두 번째 수집 (같은 피드)
-        RssCollectionService.CollectionResult secondResult = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult secondResult = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(firstResult.savedCount()).isGreaterThan(0);
@@ -106,11 +104,10 @@ class RssCollectionServiceIntegrationTest {
     @DisplayName("실제 RSS 피드 수집 및 MongoDB 저장 - 매일경제")
     void collectFeed_RealMaeilRss_SaveToMongoDB() {
         // given
-        String feedUrl = "https://www.mk.co.kr/rss/30000001/";
         String source = "maeil";
 
         // when
-        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(feedUrl, source);
+        RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
 
         // then
         assertThat(result.totalCount()).isGreaterThan(0);
@@ -125,10 +122,9 @@ class RssCollectionServiceIntegrationTest {
     @DisplayName("Repository 메서드 테스트 - dataId로 조회")
     void repository_FindByDataId() {
         // given
-        String feedUrl = "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml";
         String source = "chosun";
 
-        rssCollectionService.collectFeed(feedUrl, source);
+        rssCollectionService.collectFeed(source);
 
         List<RssRawData> allData = rssRawDataRepository.findAll();
         assertThat(allData).isNotEmpty();

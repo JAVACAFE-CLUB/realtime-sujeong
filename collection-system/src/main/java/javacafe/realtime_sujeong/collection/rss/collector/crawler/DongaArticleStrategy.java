@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class DongaArticleStrategy extends BaseArticleCrawlingStrategy {
 
     private static final String SOURCE = "donga";
+    private static final String FEED_URL = "https://rss.donga.com/total.xml";
 
     @Override
     protected String getContentSelector() {
@@ -27,5 +28,10 @@ public class DongaArticleStrategy extends BaseArticleCrawlingStrategy {
     @Override
     public String getSupportedSource() {
         return SOURCE;
+    }
+
+    @Override
+    public String getFeedUrl() {
+        return FEED_URL;
     }
 }

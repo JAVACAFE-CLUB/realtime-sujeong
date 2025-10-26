@@ -22,4 +22,11 @@ public interface ArticleCrawlingStrategy {
      * @return 소스 이름 (예: "chosun", "maeil", "donga")
      */
     String getSupportedSource();
+
+    /**
+     * RSS 피드 URL
+     *
+     * @return 해당 언론사의 RSS 피드 URL
+     */
+    String getFeedUrl();
 }

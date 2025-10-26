@@ -1,5 +1,7 @@
 package javacafe.realtime_sujeong.collection.rss.domain;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.time.LocalDateTime;
@@ -26,6 +28,16 @@ public interface RssRawDataRepository extends MongoRepository<RssRawData, String
      * 소스별 조회
      */
     List<RssRawData> findBySource(String source);
+
+    /**
+     * 소스별 조회 (페이징)
+     */
+    Page<RssRawData> findBySource(String source, Pageable pageable);
+
+    /**
+     * 소스별 개수 조회
+     */
+    long countBySource(String source);
 
     /**
      * 상태별 조회
