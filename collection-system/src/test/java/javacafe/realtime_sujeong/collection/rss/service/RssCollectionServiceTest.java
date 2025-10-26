@@ -1,5 +1,6 @@
 package javacafe.realtime_sujeong.collection.rss.service;
 
+import javacafe.realtime_sujeong.collection.kafka.service.KafkaMessageService;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,6 +45,9 @@ class RssCollectionServiceTest {
     @Mock
     private RssRawDataRepository rssRawDataRepository;
 
+    @Mock
+    private KafkaMessageService kafkaMessageService;
+
     @InjectMocks
     private RssCollectionService rssCollectionService;
 
@@ -65,6 +70,8 @@ class RssCollectionServiceTest {
         given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
         given(rssRawDataRepository.existsByDataId(anyString())).willReturn(false);
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(kafkaMessageService.sendRssCollectedMessage(anyString(), anyString()))
+                .willReturn(CompletableFuture.completedFuture(true));
 
         // when
         RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);
@@ -107,6 +114,8 @@ class RssCollectionServiceTest {
                 .willReturn(true);  // 세 번째 중복
 
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(kafkaMessageService.sendRssCollectedMessage(anyString(), anyString()))
+                .willReturn(CompletableFuture.completedFuture(true));
 
         // when
         RssCollectionService.CollectionResult result = rssCollectionService.collectFeed(source);

@@ -1,6 +1,7 @@
 package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
+import javacafe.realtime_sujeong.collection.kafka.service.KafkaMessageService;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
@@ -30,6 +31,7 @@ public class RssCollectionService {
     private final ArticleContentCrawler articleContentCrawler;
     private final ArticleCrawlingStrategyFactory strategyFactory;
     private final RssRawDataRepository rssRawDataRepository;
+    private final KafkaMessageService kafkaMessageService;
 
     /**
      * RSS 피드 수집
@@ -87,6 +89,14 @@ public class RssCollectionService {
 
                 log.debug("데이터 저장 완료 - dataId: {}, title: {}, content: {} 글자",
                         dataId, item.getTitle(), content.length());
+
+                // Kafka 메시지 전송 (비동기)
+                kafkaMessageService.sendRssCollectedMessage(dataId, source)
+                        .exceptionally(throwable -> {
+                            log.warn("Kafka 메시지 전송 실패했지만 수집은 완료됨 - dataId: {}", dataId, throwable);
+                            return false;
+                        });
+
                 savedCount++;
 
             } catch (Exception e) {

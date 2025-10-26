@@ -51,3 +51,5 @@ out/
 ### Environment Config (sensitive info) ###
 **/application-local.properties
 **/application-local.yml
+**/application-dev.properties
+**/application-dev.yml
