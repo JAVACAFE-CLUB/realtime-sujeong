@@ -3,6 +3,8 @@ package javacafe.realtime_sujeong.collection.common.util;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -17,7 +19,7 @@ class DataIdGeneratorTest {
         String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId = DataIdGenerator.generateRssDataId(link, pubDate);
+        String dataId = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
 
         // then
         assertThat(dataId).isNotNull();
@@ -33,8 +35,8 @@ class DataIdGeneratorTest {
         String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId1 = DataIdGenerator.generateRssDataId(link, pubDate);
-        String dataId2 = DataIdGenerator.generateRssDataId(link, pubDate);
+        String dataId1 = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
+        String dataId2 = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
 
         // then
         assertThat(dataId1).isEqualTo(dataId2);
@@ -49,8 +51,8 @@ class DataIdGeneratorTest {
         String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId1 = DataIdGenerator.generateRssDataId(link1, pubDate);
-        String dataId2 = DataIdGenerator.generateRssDataId(link2, pubDate);
+        String dataId1 = DataIdGenerator.generateRssDataId(link1, LocalDateTime.parse(pubDate));
+        String dataId2 = DataIdGenerator.generateRssDataId(link2, LocalDateTime.parse(pubDate));
 
         // then
         assertThat(dataId1).isNotEqualTo(dataId2);
@@ -64,7 +66,7 @@ class DataIdGeneratorTest {
         String pubDate = "2025-10-25T10:30:00";
 
         // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, pubDate))
+        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null일 수 없습니다");
     }
@@ -77,7 +79,7 @@ class DataIdGeneratorTest {
         String pubDate = null;
 
         // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, pubDate))
+        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null일 수 없습니다");
     }

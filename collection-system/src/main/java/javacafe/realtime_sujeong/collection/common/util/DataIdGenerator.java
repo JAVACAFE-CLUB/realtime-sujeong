@@ -14,7 +14,7 @@ public class DataIdGenerator {
      * @param pubDate 발행 시간
      * @return SHA-256 해시 ID
      */
-    public String generateRssDataId(String link, LocalDateTime pubDate) {
+    public static String generateRssDataId(String link, LocalDateTime pubDate) {
         String input = link + pubDate.toString();
         return DigestUtils.sha256Hex(input);
     }
@@ -25,7 +25,7 @@ public class DataIdGenerator {
      * @param revisionId 리비전 ID
      * @return SHA-256 해시 ID
      */
-    public String generateWikiDataId(String pageId, String revisionId) {
+    public static String generateWikiDataId(String pageId, String revisionId) {
         String input = "wiki:" + pageId + ":" + revisionId;
         return DigestUtils.sha256Hex(input);
     }

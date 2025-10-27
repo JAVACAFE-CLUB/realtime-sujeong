@@ -7,6 +7,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
     // Spring Kafka
     implementation 'org.springframework.kafka:spring-kafka'
@@ -14,9 +15,17 @@ dependencies {
     // XML Parsing (for Wiki)
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
     implementation 'org.glassfish.jaxb:jaxb-runtime'
+    implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
+    implementation 'org.springframework:spring-oxm'
 
     // HTTP Client (for RSS crawling)
     implementation 'org.jsoup:jsoup:1.17.2'
+
+    // Apache Commons (for hashing)
+    implementation 'commons-codec:commons-codec'
+
+    // H2 Database (for Spring Batch metadata)
+    runtimeOnly 'com.h2database:h2'
 
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

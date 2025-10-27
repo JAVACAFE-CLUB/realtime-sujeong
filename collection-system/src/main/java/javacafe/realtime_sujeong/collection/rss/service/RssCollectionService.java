@@ -60,7 +60,7 @@ public class RssCollectionService {
                 // DataId 생성 (link + pubDate)
                 String dataId = DataIdGenerator.generateRssDataId(
                         item.getLink(),
-                        item.getPubDate().toString()
+                        item.getPubDate()
                 );
 
                 // 중복 체크
