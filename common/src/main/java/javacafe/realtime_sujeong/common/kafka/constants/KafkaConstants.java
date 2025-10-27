@@ -57,6 +57,25 @@ public final class KafkaConstants {
     }
 
     /**
+     * 데이터 소스 타입
+     */
+    public enum Sources {
+        RSS("rss"),
+        WIKI("wiki"),
+        API("api");
+
+        private final String value;
+
+        Sources(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    /**
      * 처리 우선순위
      */
     public static final class Priorities {
