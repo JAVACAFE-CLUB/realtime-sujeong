@@ -39,7 +39,7 @@ public class CollectionPayload {
 
     /**
      * 소스별 상세 정보 (Optional)
-     * RSS: 언론사 정보, Wiki: 네임스페이스 등
+     * RSS: RssSourceDetails, Wiki: WikiSourceDetails
      */
-    private Object sourceDetails;
+    private SourceDetails sourceDetails;
 }
