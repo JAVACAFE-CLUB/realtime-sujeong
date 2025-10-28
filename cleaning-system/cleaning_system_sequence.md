@@ -10,29 +10,37 @@
 
 ## 🔁 정제 시스템 처리 단계
 
-### **1️⃣ Kafka Consumer - 데이터 수신**
-- Cleaning System은 `collection-to-cleaning` 토픽을 구독하여 Collection System으로부터 메타데이터를 전달받는다.
-- 메시지에는 다음 정보가 포함됨:
+### **1️⃣ Kafka Consumer - 배치 데이터 수신 (성능 최적화)**
+- Cleaning System은 `collection-to-cleaning` 토픽을 구독하여 Collection System으로부터 메타데이터를 **배치로** 전달받는다.
+- **Kafka Batch Listener 사용**: 한 번에 100개씩 메시지를 수신하여 처리
+- 각 메시지에는 다음 정보가 포함됨:
   - `dataId`, `source`, `mongoCollectionName`, `priority`, `sourceDetails`
 - Consumer 그룹(`cleaning-group`)으로 구성되어 병렬 처리가 가능하다.
+- **배치 설정**: `max-poll-records: 100`, `fetch-min-size: 1MB`
 
 ```
 [Kafka: collection-to-cleaning]
-        ↓
-[Cleaning Consumer]
+        ↓ (100개씩 배치)
+[Cleaning Batch Consumer]
 ```
 
 ---
 
-### **2️⃣ MongoDB 조회 - 원본 데이터 획득**
-- 전달받은 `dataId`와 `mongoCollectionName`을 기준으로 원본 데이터를 조회한다.
+### **2️⃣ MongoDB 조회 - 원본 데이터 일괄 획득 (Bulk Operation)**
+- 배치로 전달받은 메시지에서 모든 `dataId`를 추출
 - `source` 값에 따라 적절한 Fetcher 선택 (Factory Pattern):
-  - `rss` → `RssRawDataFetcher` → `rss_raw_data` 컬렉션 조회
-  - `wiki` → `WikiRawDataFetcher` → `wiki_raw_data` 컬렉션 조회
+  - `rss` → `RssRawDataFetcher.fetchContentBatch()` → `rss_raw_data` 컬렉션 **일괄 조회**
+  - `wiki` → `WikiRawDataFetcher.fetchContentBatch()` → `wiki_raw_data` 컬렉션 **일괄 조회**
+- **MongoDB Bulk Query**: `findAllByDataIdIn(List<String> dataIds)` 사용
+- **성능 향상**: 100개 dataId를 1번의 조회로 처리 (기존 100회 → 1회)
 
 ```
-Cleaning Consumer
-    ↓ (dataId 조회)
+Cleaning Batch Consumer
+    ↓ (dataId 리스트 추출)
+RawDataFetcherFactory
+    ↓ (source별 Fetcher 선택)
+MongoDB Bulk Query (findAllByDataIdIn)
+    ↓
 MongoDB (rss_raw_data or wiki_raw_data)
 ```
 
@@ -74,28 +82,31 @@ RssRawDataFetcher → (이미 크롤링된 content 사용)
 
 ---
 
-### **5️⃣ MongoDB 저장 - 정제 데이터 영구 저장**
-- 정제 완료된 문서를 `cleaned_data` 컬렉션에 저장.
-- 원본 데이터(`rss_raw_data`, `wiki_raw_data`)와의 관계는 `dataId`로 연결.
-- Upsert 방식으로 저장 (동일 `dataId` 재처리 시 갱신).
+### **5️⃣ MongoDB 저장 - 정제 데이터 일괄 저장 (Bulk Insert)**
+- 정제 완료된 문서 리스트를 `cleaned_data` 컬렉션에 **일괄 저장**
+- 원본 데이터(`rss_raw_data`, `wiki_raw_data`)와의 관계는 `dataId`로 연결
+- **MongoDB Bulk Operation**: `saveAll(List<CleanedData>)` 사용
+- Upsert 방식으로 저장 (동일 `dataId` 재처리 시 갱신)
+- **성능 향상**: 100개 문서를 1번의 저장으로 처리 (기존 100회 → 1회)
 
 ```
 Cleaning Service
-    ↓
-MongoDB.cleaned_data.save()
+    ↓ (List<CleanedData>)
+MongoDB.cleaned_data.saveAll()
 ```
 
 ---
 
-### **6️⃣ Kafka Producer - 정제 완료 메시지 전송**
-- 정제 완료된 데이터를 `cleaning-to-indexing` 토픽으로 전송.
-- CleaningPayload 포함:
+### **6️⃣ Kafka Producer - 정제 완료 메시지 배치 전송**
+- 정제 완료된 데이터 리스트를 `cleaning-to-indexing` 토픽으로 **배치 전송**
+- 각 CleaningPayload 포함:
   - `dataId`, `source`, `title`, `cleanedContent`, `language`, `metadata`
+- **배치 발행**: 여러 메시지를 한 번에 전송하여 네트워크 overhead 감소
 
 ```
 Cleaning Service
-    ↓
-Kafka.cleaning-to-indexing
+    ↓ (List<KafkaMessage<CleaningPayload>>)
+Kafka.cleaning-to-indexing (배치 전송)
 ```
 
 ---
@@ -122,49 +133,59 @@ Kafka.dead-letter-queue
 
 ---
 
-## 🧠 전체 시퀀스 다이어그램 (텍스트 기반)
+## 🧠 전체 시퀀스 다이어그램 (배치 처리 방식)
 
 ```
 Kafka(collection-to-cleaning)
-     │  {dataId, source, mongoCollectionName, sourceDetails}
+     │  List<KafkaMessage<CollectionPayload>> (100개)
      ▼
-Cleaning Consumer
-     │  consume(KafkaMessage<CollectionPayload>)
+Cleaning Batch Consumer
+     │  consumeBatch(List<KafkaMessage>)
+     │  → dataIds 추출 (List<String>)
      ▼
 RawDataFetcherFactory
      │  getFetcher(source)
      ▼
-MongoDB(rss_raw_data or wiki_raw_data)
-     │  findByDataId(dataId)
+MongoDB Bulk Query (rss_raw_data or wiki_raw_data)
+     │  findAllByDataIdIn(dataIds) → 1회 조회로 100개 데이터 획득
      ▼
-Apache Tika (Wiki만)
-     │  extractText(wikitext) → plain text
+[For Each Data in Batch]
+     ├─ Apache Tika (Wiki만)
+     │   │  extractText(wikitext) → plain text
+     │   ▼
+     └─ Normalizer
+         │  clean/standardize text, detect language
+         ▼
+[배치 처리 완료]
      ▼
-Normalizer
-     │  clean/standardize text, detect language
+MongoDB Bulk Insert (cleaned_data)
+     │  saveAll(List<CleanedData>) → 1회 저장으로 100개 저장
      ▼
-MongoDB(cleaned_data)
-     │  save(CleanedData)
-     ▼
-Kafka(cleaning-to-indexing)
-     │  produce(KafkaMessage<CleaningPayload>)
+Kafka Producer (cleaning-to-indexing)
+     │  produceBatch(List<KafkaMessage<CleaningPayload>>)
      ▼
 Kafka(dead-letter-queue) ← [if Exception after 3 retries]
 ```
 
+**성능 개선 효과**:
+- MongoDB 조회: 100회 → 1회 (100x 개선)
+- MongoDB 저장: 100회 → 1회 (100x 개선)
+- Kafka 발행: 100회 → 1회 (네트워크 overhead 감소)
+- **예상 처리량**: 20 msg/sec → 200-500 msg/sec
+
 ---
 
 ## ✅ 최종 요약
-| 단계 | 모듈 | 주요 역할 |
-|------|------|------------|
-| 1 | Kafka Consumer | Collection System으로부터 메타데이터 수신 |
-| 2 | RawDataFetcher (Factory Pattern) | MongoDB에서 원본 데이터 조회 (source별 분기) |
-| 3 | Apache Tika (Wiki만) | wikitext → plain text 변환 |
-| 4 | Normalizer | 데이터 정규화 및 언어 감지 |
-| 5 | MongoDB 저장소 (cleaned_data) | 정제된 문서 저장 (RSS/Wiki 통합) |
-| 6 | Kafka Producer | Indexing System으로 메시지 전송 |
-| 7 | DLQ 처리 | 실패 데이터 재처리 (3회 재시도) |
-| 8 | 로깅/모니터링 | 성능 및 장애 추적 |
+| 단계 | 모듈 | 주요 역할 | 최적화 방식 |
+|------|------|------------|------------|
+| 1 | Kafka Batch Consumer | Collection System으로부터 메타데이터 **배치 수신** | 100개씩 배치 처리 |
+| 2 | RawDataFetcher (Factory Pattern) | MongoDB에서 원본 데이터 **일괄 조회** | Bulk Query (findAllByDataIdIn) |
+| 3 | Apache Tika (Wiki만) | wikitext → plain text 변환 | - |
+| 4 | Normalizer | 데이터 정규화 및 언어 감지 | 배치 내 병렬 처리 |
+| 5 | MongoDB 저장소 (cleaned_data) | 정제된 문서 **일괄 저장** | Bulk Insert (saveAll) |
+| 6 | Kafka Producer | Indexing System으로 메시지 **배치 전송** | 배치 발행 |
+| 7 | DLQ 처리 | 실패 데이터 재처리 (3회 재시도) | - |
+| 8 | 로깅/모니터링 | 성능 및 장애 추적 | Batch 단위 메트릭 수집 |
 
 ---
 

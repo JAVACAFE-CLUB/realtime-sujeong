@@ -21,6 +21,8 @@ flowchart TD
 정제(Cleaning) 시스템은 수집된 원본 데이터를 받아
 **MongoDB 조회 → Tika 텍스트 추출 (Wiki만) → 데이터 정제 및 정규화 → 색인용 Kafka 토픽 전송**을 담당합니다.
 
+**성능 최적화**: Kafka Batch Listener를 사용하여 메시지를 배치로 처리하고, MongoDB bulk operation으로 처리량을 극대화합니다.
+
 ---
 
 ## 🧱 시스템 구성도
@@ -34,10 +36,10 @@ flowchart TD
     end
 
     subgraph Cleaning["Cleaning System"]
-        A1[Consumer] --> A2[MongoDB Query]
+        A1[Batch Consumer<br/>100개씩 처리] --> A2[MongoDB Bulk Query]
         A2 --> A3[Tika Extractor - Wiki Only]
         A3 --> A4[Normalizer]
-        A4 --> A5[Producer]
+        A4 --> A5[Producer<br/>배치 발행]
     end
 
     subgraph MongoDB["MongoDB"]
@@ -104,20 +106,23 @@ sequenceDiagram
     participant T as Tika (Wiki Only)
     participant K2 as Kafka (cleaning-to-indexing)
 
-    K1->>C: Consume metadata (dataId, source, mongoCollectionName)
-    C->>M: Query raw data by dataId
-    M-->>C: Return raw data (with content)
+    K1->>C: Consume batch (100 messages)
+    Note over C: Extract dataIds from batch
+    C->>M: Bulk query by dataIds (findAllByDataIdIn)
+    M-->>C: Return raw data list
 
-    alt source == "wiki"
-        C->>T: Extract text from wikitext
-        T-->>C: Return plain text
-    else source == "rss"
-        C->>C: Use already crawled content
+    loop For each data
+        alt source == "wiki"
+            C->>T: Extract text from wikitext
+            T-->>C: Return plain text
+        else source == "rss"
+            C->>C: Use already crawled content
+        end
+        C->>C: Normalize, clean, detect language
     end
 
-    C->>C: Normalize, clean, detect language
-    C->>M: Save to cleaned_data
-    C->>K2: Produce cleaned document
+    C->>M: Bulk save to cleaned_data (saveAll)
+    C->>K2: Batch produce cleaned documents
 ```
 
 ---
@@ -276,12 +281,13 @@ flowchart LR
 
 ## 📈 MongoDB 조회 전략
 
-### Collection별 조회 방식
+### Collection별 조회 방식 (Factory Pattern + Bulk Operation)
 
 ```java
-// Factory Pattern 사용
+// Factory Pattern 사용 - 배치 처리 지원
 public interface RawDataFetcher {
     RawDataContent fetchContent(String dataId);
+    List<RawDataContent> fetchContentBatch(List<String> dataIds);  // 배치 조회
 }
 
 // RSS 조회
@@ -293,6 +299,18 @@ public class RssRawDataFetcher implements RawDataFetcher {
             rawData.getRssItem().getContent(),  // 이미 크롤링됨
             rawData.getRssItem().getUrl()
         );
+    }
+
+    // 배치 조회 (성능 최적화)
+    public List<RawDataContent> fetchContentBatch(List<String> dataIds) {
+        List<RssRawData> rawDataList = rssRawDataRepository.findAllByDataIdIn(dataIds);
+        return rawDataList.stream()
+            .map(raw -> new RawDataContent(
+                raw.getRssItem().getTitle(),
+                raw.getRssItem().getContent(),
+                raw.getRssItem().getUrl()
+            ))
+            .toList();
     }
 }
 
@@ -310,6 +328,18 @@ public class WikiRawDataFetcher implements RawDataFetcher {
             plainText,
             null  // Wiki는 URL 없음
         );
+    }
+
+    // 배치 조회 (성능 최적화)
+    public List<RawDataContent> fetchContentBatch(List<String> dataIds) {
+        List<WikiRawData> rawDataList = wikiRawDataRepository.findAllByDataIdIn(dataIds);
+        return rawDataList.stream()
+            .map(raw -> {
+                String wikitext = raw.getWikiPage().getRevision().getText().getContent();
+                String plainText = tikaExtractor.extract(wikitext);
+                return new RawDataContent(raw.getTitle(), plainText, null);
+            })
+            .toList();
     }
 }
 ```
@@ -330,6 +360,64 @@ flowchart TD
     J --> I
     I --> K[MongoDB: cleaned_data]
     I --> L[Kafka: cleaning-to-indexing]
+```
+
+---
+
+## ⚡ 성능 최적화 전략
+
+### Kafka Batch Listener
+```yaml
+spring:
+  kafka:
+    consumer:
+      group-id: cleaning-group
+      max-poll-records: 100          # 한 번에 100개 메시지 처리
+      fetch-min-size: 1048576        # 1MB 이상 모아서 처리
+      auto-offset-reset: earliest
+```
+
+### MongoDB Bulk Operation
+```java
+// Repository에 배치 조회 메서드 추가
+public interface RssRawDataRepository extends MongoRepository<RssRawData, String> {
+    List<RssRawData> findAllByDataIdIn(List<String> dataIds);
+}
+
+public interface WikiRawDataRepository extends MongoRepository<WikiRawData, String> {
+    List<WikiRawData> findAllByDataIdIn(List<String> dataIds);
+}
+
+// Service에서 배치 저장
+cleanedDataRepository.saveAll(cleanedDataList);  // Bulk insert
+```
+
+### MongoDB Connection Pool
+```yaml
+spring:
+  data:
+    mongodb:
+      connection-pool:
+        max-size: 50
+        min-size: 10
+```
+
+### 성능 지표 (예상)
+| 항목 | 단일 처리 | 배치 처리 (100개) |
+|------|----------|------------------|
+| MongoDB 조회 | 100회 | 1회 |
+| MongoDB 저장 | 100회 | 1회 |
+| Throughput | 20 msg/sec | 200-500 msg/sec |
+| Latency | ~100ms/msg | ~5-10초/batch |
+
+### 확장 전략
+```
+Kafka Topic: collection-to-cleaning (10 partitions)
+    ↓
+Cleaning Consumer Instance 1 (partition 0)
+Cleaning Consumer Instance 2 (partition 1)
+...
+Cleaning Consumer Instance 10 (partition 9)
 ```
 
 ---
@@ -355,13 +443,14 @@ flowchart TD
 - [ ] CleaningService (orchestration)
 
 ### Phase 5: Kafka 통합
-- [ ] CleaningConsumer
-- [ ] CleaningProducer
+- [ ] CleaningConsumer (Batch Listener)
+- [ ] CleaningProducer (Batch 발행)
 - [ ] DLQ 처리
 
 ### Phase 6: Config & 테스트
 - [ ] TikaConfig
 - [ ] MongoConfig
+- [ ] KafkaConsumerConfig (배치 처리 설정)
 - [ ] 통합 테스트
 
 ---
