@@ -2,6 +2,8 @@ package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
 import javacafe.realtime_sujeong.collection.kafka.service.KafkaMessageService;
+import javacafe.realtime_sujeong.common.kafka.constants.KafkaConstants;
+import javacafe.realtime_sujeong.common.kafka.dto.RssSourceDetails;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
@@ -90,8 +92,22 @@ public class RssCollectionService {
                 log.debug("데이터 저장 완료 - dataId: {}, title: {}, content: {} 글자",
                         dataId, item.getTitle(), content.length());
 
+                // RssSourceDetails 생성
+                RssSourceDetails sourceDetails = RssSourceDetails.builder()
+                        .strategyName(source)
+                        .title(item.getTitle())
+                        .url(item.getLink())
+                        .author(null)  // RSS에 작성자 정보 없음
+                        .publishedAt(item.getPubDate())
+                        .build();
+
                 // Kafka 메시지 전송 (비동기)
-                kafkaMessageService.sendRssCollectedMessage(dataId, source)
+                kafkaMessageService.sendDataCollectedMessage(
+                                dataId,
+                                source,
+                                KafkaConstants.Collections.RSS_RAW_DATA,
+                                sourceDetails
+                        )
                         .exceptionally(throwable -> {
                             log.warn("Kafka 메시지 전송 실패했지만 수집은 완료됨 - dataId: {}", dataId, throwable);
                             return false;

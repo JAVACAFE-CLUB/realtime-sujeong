@@ -3,6 +3,7 @@ package javacafe.realtime_sujeong.collection.kafka.service;
 import javacafe.realtime_sujeong.common.kafka.constants.KafkaConstants;
 import javacafe.realtime_sujeong.common.kafka.dto.CollectionPayload;
 import javacafe.realtime_sujeong.common.kafka.dto.KafkaMessage;
+import javacafe.realtime_sujeong.common.kafka.dto.SourceDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -37,7 +38,7 @@ public class KafkaMessageService {
             String dataId,
             String source,
             String mongoCollectionName,
-            Object sourceDetails) {
+            SourceDetails sourceDetails) {
 
         try {
             // CollectionPayload 생성
@@ -87,35 +88,5 @@ public class KafkaMessageService {
         }
     }
 
-    /**
-     * RSS 데이터 수집 완료 메시지 전송 (편의 메서드)
-     *
-     * @param dataId 데이터 ID
-     * @param source 언론사 소스
-     * @return CompletableFuture<Boolean>
-     */
-    public CompletableFuture<Boolean> sendRssCollectedMessage(String dataId, String source) {
-        return sendDataCollectedMessage(
-                dataId,
-                source,
-                KafkaConstants.Collections.RSS_RAW_DATA,
-                null
-        );
-    }
 
-    /**
-     * Wiki 데이터 수집 완료 메시지 전송 (편의 메서드)
-     *
-     * @param dataId 데이터 ID
-     * @param namespace Wiki 네임스페이스
-     * @return CompletableFuture<Boolean>
-     */
-    public CompletableFuture<Boolean> sendWikiCollectedMessage(String dataId, String namespace) {
-        return sendDataCollectedMessage(
-                dataId,
-                "wiki",
-                KafkaConstants.Collections.WIKI_RAW_DATA,
-                namespace
-        );
-    }
 }

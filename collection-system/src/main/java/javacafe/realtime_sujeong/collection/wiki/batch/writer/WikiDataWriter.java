@@ -4,15 +4,14 @@ import javacafe.realtime_sujeong.collection.wiki.domain.WikiRawData;
 import javacafe.realtime_sujeong.collection.wiki.domain.WikiRawDataRepository;
 import javacafe.realtime_sujeong.collection.kafka.service.KafkaMessageService;
 import javacafe.realtime_sujeong.common.kafka.constants.KafkaConstants;
+import javacafe.realtime_sujeong.common.kafka.dto.WikiSourceDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -105,10 +104,14 @@ public class WikiDataWriter implements ItemWriter<WikiRawData> {
         // 모든 메시지를 비동기로 전송
         List<CompletableFuture<Boolean>> futures = items.stream()
                 .map(wikiRawData -> {
-                    // sourceDetails 생성
-                    Map<String, Object> sourceDetails = new HashMap<>();
-                    sourceDetails.put("namespace", wikiRawData.getNamespace());
-                    sourceDetails.put("title", wikiRawData.getTitle());
+                    // WikiSourceDetails 생성
+                    WikiSourceDetails sourceDetails = WikiSourceDetails.builder()
+                            .namespace(wikiRawData.getNamespace())
+                            .title(wikiRawData.getTitle())
+                            .pageId(wikiRawData.getWikiPage().getPageId())
+                            .revisionId(wikiRawData.getWikiPage().getRevision().getRevisionId())
+                            .timestamp(wikiRawData.getWikiPage().getRevision().getTimestamp())
+                            .build();
 
                     return kafkaMessageService.sendDataCollectedMessage(
                             wikiRawData.getDataId(),
