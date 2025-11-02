@@ -17,4 +17,9 @@ dependencies {
 
     // Spring Kafka
     implementation 'org.springframework.kafka:spring-kafka'
+
+    // Apache Tika (텍스트 추출 및 언어 감지)
+    implementation 'org.apache.tika:tika-core:2.9.1'
+    implementation 'org.apache.tika:tika-parsers-standard-package:2.9.1'
+    implementation 'org.apache.tika:tika-langdetect-optimaize:2.9.1'
 }
