@@ -1,6 +1,6 @@
 package javacafe.realtime_sujeong.collection.wiki.domain;
 
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;

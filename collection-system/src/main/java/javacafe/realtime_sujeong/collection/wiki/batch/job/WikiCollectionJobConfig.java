@@ -2,7 +2,7 @@ package javacafe.realtime_sujeong.collection.wiki.batch.job;
 
 import javacafe.realtime_sujeong.collection.wiki.batch.processor.WikiPageProcessor;
 import javacafe.realtime_sujeong.collection.wiki.batch.writer.WikiDataWriter;
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import javacafe.realtime_sujeong.collection.wiki.domain.WikiRawData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

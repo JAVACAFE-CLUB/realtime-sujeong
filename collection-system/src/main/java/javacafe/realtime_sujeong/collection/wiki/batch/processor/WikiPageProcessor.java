@@ -1,6 +1,6 @@
 package javacafe.realtime_sujeong.collection.wiki.batch.processor;
 
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import javacafe.realtime_sujeong.collection.wiki.domain.WikiRawData;
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
 import lombok.RequiredArgsConstructor;

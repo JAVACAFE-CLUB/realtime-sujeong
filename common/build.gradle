@@ -21,4 +21,10 @@ dependencies {
     // Jackson (JSON 직렬화)
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // XML Parsing (for WikiPage DTO)
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
+    implementation 'org.glassfish.jaxb:jaxb-runtime'
+    implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
+    implementation 'org.springframework:spring-oxm'
 }
