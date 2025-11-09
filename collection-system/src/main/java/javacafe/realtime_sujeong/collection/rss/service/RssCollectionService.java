@@ -104,7 +104,7 @@ public class RssCollectionService {
                 // Kafka 메시지 전송 (비동기)
                 kafkaMessageService.sendDataCollectedMessage(
                                 dataId,
-                                source,
+                                "rss",  // cleaning-system의 RssRawDataFetcher가 기대하는 source 타입
                                 KafkaConstants.Collections.RSS_RAW_DATA,
                                 sourceDetails
                         )

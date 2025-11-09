@@ -23,25 +23,25 @@ public class WikiPage {
     /**
      * 페이지 제목
      */
-    @XmlElement(name = "title")
+    @XmlElement(name = "title", namespace = "http://www.mediawiki.org/xml/export-0.11/")
     private String title;
 
     /**
      * 페이지 ID (Wiki 고유 ID)
      */
-    @XmlElement(name = "id")
+    @XmlElement(name = "id", namespace = "http://www.mediawiki.org/xml/export-0.11/")
     private String pageId;
 
     /**
      * 네임스페이스
      */
-    @XmlElement(name = "ns")
+    @XmlElement(name = "ns", namespace = "http://www.mediawiki.org/xml/export-0.11/")
     private String namespace;
 
     /**
      * revision 정보 (중첩된 객체)
      */
-    @XmlElement(name = "revision")
+    @XmlElement(name = "revision", namespace = "http://www.mediawiki.org/xml/export-0.11/")
     private Revision revision;
 
     /**
@@ -52,43 +52,44 @@ public class WikiPage {
     @NoArgsConstructor
     @AllArgsConstructor
     @XmlAccessorType(XmlAccessType.FIELD)
+    @XmlType(namespace = "http://www.mediawiki.org/xml/export-0.11/")
     public static class Revision {
 
         /**
          * 리비전 ID
          */
-        @XmlElement(name = "id")
+        @XmlElement(name = "id", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private String revisionId;
 
         /**
          * 최종 수정 타임스탬프
          */
-        @XmlElement(name = "timestamp")
+        @XmlElement(name = "timestamp", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         @XmlJavaTypeAdapter(LocalDateTimeAdapter.class)
         private LocalDateTime timestamp;
 
         /**
          * 기여자 정보
          */
-        @XmlElement(name = "contributor")
+        @XmlElement(name = "contributor", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private Contributor contributor;
 
         /**
          * 페이지 모델 (wikitext, etc.)
          */
-        @XmlElement(name = "model")
+        @XmlElement(name = "model", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private String model;
 
         /**
          * 페이지 포맷 (text/x-wiki, etc.)
          */
-        @XmlElement(name = "format")
+        @XmlElement(name = "format", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private String format;
 
         /**
          * 페이지 본문 (wikitext 형식)
          */
-        @XmlElement(name = "text")
+        @XmlElement(name = "text", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private TextContent text;
     }
 
@@ -100,12 +101,13 @@ public class WikiPage {
     @NoArgsConstructor
     @AllArgsConstructor
     @XmlAccessorType(XmlAccessType.FIELD)
+    @XmlType(namespace = "http://www.mediawiki.org/xml/export-0.11/")
     public static class Contributor {
 
-        @XmlElement(name = "username")
+        @XmlElement(name = "username", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private String username;
 
-        @XmlElement(name = "id")
+        @XmlElement(name = "id", namespace = "http://www.mediawiki.org/xml/export-0.11/")
         private String userId;
     }
 
@@ -117,6 +119,7 @@ public class WikiPage {
     @NoArgsConstructor
     @AllArgsConstructor
     @XmlAccessorType(XmlAccessType.FIELD)
+    @XmlType(namespace = "http://www.mediawiki.org/xml/export-0.11/")
     public static class TextContent {
 
         @XmlAttribute(name = "bytes")

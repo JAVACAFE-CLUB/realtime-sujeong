@@ -70,7 +70,7 @@ class RssCollectionServiceTest {
         given(articleContentCrawler.crawl(anyString(), anyString())).willReturn("테스트 기사 본문 내용");
         given(rssRawDataRepository.existsByDataId(anyString())).willReturn(false);
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
-        given(kafkaMessageService.sendRssCollectedMessage(anyString(), anyString()))
+        given(kafkaMessageService.sendDataCollectedMessage(anyString(), anyString(), anyString(), any()))
                 .willReturn(CompletableFuture.completedFuture(true));
 
         // when
@@ -114,7 +114,7 @@ class RssCollectionServiceTest {
                 .willReturn(true);  // 세 번째 중복
 
         given(rssRawDataRepository.save(any(RssRawData.class))).willAnswer(invocation -> invocation.getArgument(0));
-        given(kafkaMessageService.sendRssCollectedMessage(anyString(), anyString()))
+        given(kafkaMessageService.sendDataCollectedMessage(anyString(), anyString(), anyString(), any()))
                 .willReturn(CompletableFuture.completedFuture(true));
 
         // when
