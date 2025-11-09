@@ -26,7 +26,7 @@ public class TikaConfig {
      * 언어 감지기 생성
      * Optimaize 기반 언어 감지
      */
-    @Bean
+    @Bean("tikaLanguageDetector")
     public LanguageDetector languageDetector() throws Exception {
         LanguageDetector detector = new OptimaizeLangDetector();
         detector.loadModels();

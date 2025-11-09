@@ -7,6 +7,8 @@ import javacafe.realtime_sujeong.cleaning.service.fetcher.RawDataFetcherFactory;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.dto.RawDataContent;
 import javacafe.realtime_sujeong.cleaning.service.processor.LanguageDetector;
 import javacafe.realtime_sujeong.cleaning.service.processor.TextNormalizer;
+import javacafe.realtime_sujeong.common.kafka.dto.CollectionPayload;
+import javacafe.realtime_sujeong.common.kafka.dto.KafkaMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class CleaningService {
     private final TextNormalizer textNormalizer;
     private final LanguageDetector languageDetector;
     private final CleanedDataRepository cleanedDataRepository;
+    private final javacafe.realtime_sujeong.cleaning.kafka.producer.CleaningProducer cleaningProducer;
 
     // 최소 컨텐츠 길이 (validation용)
     private static final int MIN_CONTENT_LENGTH = 10;
@@ -36,14 +39,10 @@ public class CleaningService {
      * 배치 정제 처리 (메인 메서드)
      * Kafka Consumer로부터 받은 메시지 리스트를 일괄 처리
      *
-     * TODO: Phase 5에서 KafkaMessage<CollectionPayload> 타입으로 변경 예정
-     * 현재는 Map 형태로 임시 구현
-     *
      * @param messages Kafka 메시지 리스트 (최대 100개)
-     *                 각 메시지는 { dataId, source, ... } 형태
      * @return 정제 완료된 CleanedData 리스트
      */
-    public List<CleanedData> processBatch(List<Map<String, Object>> messages) {
+    public List<CleanedData> processBatch(List<KafkaMessage<CollectionPayload>> messages) {
         if (messages == null || messages.isEmpty()) {
             log.warn("Empty message batch received");
             return Collections.emptyList();
@@ -69,8 +68,17 @@ public class CleaningService {
 
             log.debug("Cleaned {} data items", cleanedDataList.size());
 
+            // 정제된 데이터가 없으면 조기 반환
+            if (cleanedDataList.isEmpty()) {
+                log.warn("No valid data after cleaning");
+                return Collections.emptyList();
+            }
+
             // 4. MongoDB 일괄 저장 (bulk insert)
             saveCleanedDataBatch(cleanedDataList);
+
+            // 5. Kafka 일괄 발행 (cleaning-to-indexing 토픽)
+            cleaningProducer.sendBatch(cleanedDataList);
 
             long elapsedTime = System.currentTimeMillis() - startTime;
             log.info("Batch processing completed: {}/{} cleaned in {}ms",
@@ -91,17 +99,19 @@ public class CleaningService {
      * @param messages Kafka 메시지 리스트
      * @return Map<source, List<dataId>>
      */
-    private Map<String, List<String>> groupBySource(List<Map<String, Object>> messages) {
+    private Map<String, List<String>> groupBySource(List<KafkaMessage<CollectionPayload>> messages) {
         Map<String, List<String>> grouped = new HashMap<>();
 
-        for (Map<String, Object> message : messages) {
-            // 메시지 검증
-            if (!validateMessage(message)) {
+        for (KafkaMessage<CollectionPayload> message : messages) {
+            CollectionPayload payload = message.getPayload();
+
+            // 페이로드 검증
+            if (!validatePayload(payload)) {
                 continue;
             }
 
-            String source = (String) message.get("source");
-            String dataId = (String) message.get("dataId");
+            String source = payload.getSource();
+            String dataId = payload.getDataId();
 
             // source별로 dataId 수집
             grouped.computeIfAbsent(source.toLowerCase(), k -> new ArrayList<>())
@@ -282,28 +292,28 @@ public class CleaningService {
     }
 
     /**
-     * Kafka 메시지 유효성 검증
+     * CollectionPayload 유효성 검증
      *
-     * @param message Kafka 메시지
+     * @param payload CollectionPayload
      * @return 유효 여부
      */
-    private boolean validateMessage(Map<String, Object> message) {
-        if (message == null) {
-            log.warn("Null message received");
+    private boolean validatePayload(CollectionPayload payload) {
+        if (payload == null) {
+            log.warn("Null payload received");
             return false;
         }
 
         // 필수 필드 검증
-        String dataId = (String) message.get("dataId");
-        String source = (String) message.get("source");
+        String dataId = payload.getDataId();
+        String source = payload.getSource();
 
         if (dataId == null || dataId.isEmpty()) {
-            log.warn("Message with empty dataId: {}", message);
+            log.warn("Payload with empty dataId: {}", payload);
             return false;
         }
 
         if (source == null || source.isEmpty()) {
-            log.warn("Message with empty source: {}", message);
+            log.warn("Payload with empty source: {}", payload);
             return false;
         }
 

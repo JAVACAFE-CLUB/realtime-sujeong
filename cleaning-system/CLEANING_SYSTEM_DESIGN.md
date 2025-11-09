@@ -424,37 +424,43 @@ Cleaning Consumer Instance 10 (partition 9)
 
 ## 🧭 구현 계획
 
-### Phase 1: 도메인 레이어
-- [ ] CleanedData 엔티티
-- [ ] CleanedDataRepository
+### Phase 1: 도메인 레이어 ✅
+- [x] CleanedData 엔티티
+- [x] CleanedDataRepository
+- [x] RawDataView 엔티티 (RSS, Wiki)
 
-### Phase 2: Fetcher 레이어 (Factory Pattern)
-- [ ] RawDataFetcher 인터페이스
-- [ ] RssRawDataFetcher 구현
-- [ ] WikiRawDataFetcher 구현
-- [ ] RawDataFetcherFactory
+### Phase 2: Fetcher 레이어 (Factory Pattern) ✅
+- [x] RawDataFetcher 인터페이스
+- [x] RssRawDataFetcher 구현
+- [x] WikiRawDataFetcher 구현
+- [x] RawDataFetcherFactory
 
-### Phase 3: Processor 레이어
-- [ ] WikiTextExtractor (Tika 연동)
-- [ ] TextNormalizer (정규화)
-- [ ] LanguageDetector (언어 감지)
+### Phase 3: Processor 레이어 ✅
+- [x] WikiTextExtractor (Tika 연동)
+- [x] TextNormalizer (정규화)
+- [x] LanguageDetector (언어 감지)
 
-### Phase 4: Service 레이어
-- [ ] CleaningService (orchestration)
+### Phase 4: Service 레이어 ✅
+- [x] CleaningService (orchestration)
+- [x] CleaningServiceTest (10개 테스트 케이스)
 
-### Phase 5: Kafka 통합
-- [ ] CleaningConsumer (Batch Listener)
-- [ ] CleaningProducer (Batch 발행)
-- [ ] DLQ 처리
+### Phase 5: Kafka 통합 ✅
+- [x] KafkaConfig (Consumer & Producer)
+- [x] CleaningConsumer (Batch Listener)
+- [x] CleaningProducer (Batch 발행)
+- [x] application.properties 설정
+- [ ] DLQ 처리 (향후 구현 예정)
 
-### Phase 6: Config & 테스트
-- [ ] TikaConfig
-- [ ] MongoConfig
-- [ ] KafkaConsumerConfig (배치 처리 설정)
-- [ ] 통합 테스트
+### Phase 6: Config & 통합 테스트 (진행 예정)
+- [x] TikaConfig
+- [ ] MongoConfig (선택 사항)
+- [ ] 통합 테스트 (Consumer → Service → Producer)
+- [ ] Kafka 연동 테스트
+- [ ] MongoDB 연동 테스트
 
 ---
 
 > **Project:** Real-time Search Keyword Service
 > **Version:** 2.0.0
-> **Last Updated:** 2025-10-28
+> **Last Updated:** 2025-11-08
+> **Implementation Status:** Phase 5 완료 (Kafka Integration)

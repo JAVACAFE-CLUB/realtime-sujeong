@@ -2,11 +2,14 @@ package javacafe.realtime_sujeong.cleaning.service;
 
 import javacafe.realtime_sujeong.cleaning.domain.CleanedData;
 import javacafe.realtime_sujeong.cleaning.domain.CleanedDataRepository;
+import javacafe.realtime_sujeong.cleaning.kafka.producer.CleaningProducer;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.RawDataFetcher;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.RawDataFetcherFactory;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.dto.RawDataContent;
 import javacafe.realtime_sujeong.cleaning.service.processor.LanguageDetector;
 import javacafe.realtime_sujeong.cleaning.service.processor.TextNormalizer;
+import javacafe.realtime_sujeong.common.kafka.dto.CollectionPayload;
+import javacafe.realtime_sujeong.common.kafka.dto.KafkaMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,10 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -42,6 +45,9 @@ class CleaningServiceTest {
     private CleanedDataRepository cleanedDataRepository;
 
     @Mock
+    private CleaningProducer cleaningProducer;
+
+    @Mock
     private RawDataFetcher rssFetcher;
 
     @Mock
@@ -50,7 +56,7 @@ class CleaningServiceTest {
     @InjectMocks
     private CleaningService cleaningService;
 
-    private List<Map<String, Object>> sampleMessages;
+    private List<KafkaMessage<CollectionPayload>> sampleMessages;
     private List<RawDataContent> sampleRawDataList;
 
     @BeforeEach
@@ -59,22 +65,25 @@ class CleaningServiceTest {
         sampleMessages = new ArrayList<>();
 
         // RSS 메시지 1
-        Map<String, Object> rssMessage1 = new HashMap<>();
-        rssMessage1.put("dataId", "rss-id-1");
-        rssMessage1.put("source", "rss");
-        sampleMessages.add(rssMessage1);
+        CollectionPayload rssPayload1 = CollectionPayload.builder()
+                .dataId("rss-id-1")
+                .source("rss")
+                .build();
+        sampleMessages.add(createKafkaMessage(rssPayload1));
 
         // RSS 메시지 2
-        Map<String, Object> rssMessage2 = new HashMap<>();
-        rssMessage2.put("dataId", "rss-id-2");
-        rssMessage2.put("source", "rss");
-        sampleMessages.add(rssMessage2);
+        CollectionPayload rssPayload2 = CollectionPayload.builder()
+                .dataId("rss-id-2")
+                .source("rss")
+                .build();
+        sampleMessages.add(createKafkaMessage(rssPayload2));
 
         // Wiki 메시지
-        Map<String, Object> wikiMessage = new HashMap<>();
-        wikiMessage.put("dataId", "wiki-id-1");
-        wikiMessage.put("source", "wiki");
-        sampleMessages.add(wikiMessage);
+        CollectionPayload wikiPayload = CollectionPayload.builder()
+                .dataId("wiki-id-1")
+                .source("wiki")
+                .build();
+        sampleMessages.add(createKafkaMessage(wikiPayload));
 
         // 샘플 원본 데이터 준비
         sampleRawDataList = new ArrayList<>();
@@ -102,6 +111,17 @@ class CleaningServiceTest {
                 .content("위키 본문 내용입니다. Tika로 변환된 텍스트입니다. 충분히 길어야 합니다.")
                 .url(null)
                 .build());
+    }
+
+    private KafkaMessage<CollectionPayload> createKafkaMessage(CollectionPayload payload) {
+        return KafkaMessage.<CollectionPayload>builder()
+                .version("1.0")
+                .messageId(UUID.randomUUID().toString())
+                .timestamp(LocalDateTime.now())
+                .eventType("DATA_COLLECTED")
+                .payload(payload)
+                .retryCount(0)
+                .build();
     }
 
     @Test
@@ -160,13 +180,14 @@ class CleaningServiceTest {
         verify(textNormalizer, times(3)).normalize(anyString());
         verify(languageDetector, times(3)).detect(anyString());
         verify(cleanedDataRepository, times(1)).saveAll(anyList());
+        verify(cleaningProducer, times(1)).sendBatch(anyList()); // Kafka 발행 검증
     }
 
     @Test
     @DisplayName("빈 메시지 리스트 처리")
     void processBatch_EmptyList() {
         // Given
-        List<Map<String, Object>> emptyMessages = Collections.emptyList();
+        List<KafkaMessage<CollectionPayload>> emptyMessages = Collections.emptyList();
 
         // When
         List<CleanedData> result = cleaningService.processBatch(emptyMessages);
@@ -175,6 +196,7 @@ class CleaningServiceTest {
         assertThat(result).isEmpty();
         verify(fetcherFactory, never()).getFetcher(anyString());
         verify(cleanedDataRepository, never()).saveAll(anyList());
+        verify(cleaningProducer, never()).sendBatch(anyList());
     }
 
     @Test
@@ -186,29 +208,33 @@ class CleaningServiceTest {
         // Then
         assertThat(result).isEmpty();
         verify(fetcherFactory, never()).getFetcher(anyString());
+        verify(cleaningProducer, never()).sendBatch(anyList());
     }
 
     @Test
     @DisplayName("유효하지 않은 메시지 필터링")
     void processBatch_InvalidMessages() {
         // Given
-        List<Map<String, Object>> messages = new ArrayList<>();
+        List<KafkaMessage<CollectionPayload>> messages = new ArrayList<>();
 
         // dataId 없음
-        Map<String, Object> invalidMessage1 = new HashMap<>();
-        invalidMessage1.put("source", "rss");
-        messages.add(invalidMessage1);
+        CollectionPayload invalidPayload1 = CollectionPayload.builder()
+                .source("rss")
+                .build();
+        messages.add(createKafkaMessage(invalidPayload1));
 
         // source 없음
-        Map<String, Object> invalidMessage2 = new HashMap<>();
-        invalidMessage2.put("dataId", "test-id");
-        messages.add(invalidMessage2);
+        CollectionPayload invalidPayload2 = CollectionPayload.builder()
+                .dataId("test-id")
+                .build();
+        messages.add(createKafkaMessage(invalidPayload2));
 
         // 지원하지 않는 source
-        Map<String, Object> invalidMessage3 = new HashMap<>();
-        invalidMessage3.put("dataId", "test-id-2");
-        invalidMessage3.put("source", "unknown");
-        messages.add(invalidMessage3);
+        CollectionPayload invalidPayload3 = CollectionPayload.builder()
+                .dataId("test-id-2")
+                .source("unknown")
+                .build();
+        messages.add(createKafkaMessage(invalidPayload3));
 
         // When
         List<CleanedData> result = cleaningService.processBatch(messages);
@@ -245,6 +271,7 @@ class CleaningServiceTest {
         assertThat(result).isEmpty();
         // cleanedDataList가 비어있으면 saveAll이 호출되지 않음 (로직상 return)
         verify(cleanedDataRepository, never()).saveAll(anyList());
+        verify(cleaningProducer, never()).sendBatch(anyList());
     }
 
     @Test
@@ -270,6 +297,7 @@ class CleaningServiceTest {
         // Then
         assertThat(result).hasSize(1); // Wiki만 처리됨
         assertThat(result.get(0).getSource()).isEqualTo("wiki");
+        verify(cleaningProducer, times(1)).sendBatch(anyList());
     }
 
     @Test
@@ -298,6 +326,7 @@ class CleaningServiceTest {
         assertThat(result).hasSize(1);
         verify(cleanedDataRepository, times(1)).saveAll(anyList()); // 배치 시도
         verify(cleanedDataRepository, times(1)).save(any(CleanedData.class)); // Fallback 실행
+        verify(cleaningProducer, times(1)).sendBatch(anyList());
     }
 
     @Test
@@ -329,6 +358,7 @@ class CleaningServiceTest {
         assertThat(cleanedData.getMetadata().get("originalLength")).isEqualTo(originalContent.length());
         assertThat(cleanedData.getMetadata().get("cleanedLength")).isEqualTo(cleanedContent.length());
         assertThat(cleanedData.getMetadata().get("url")).isEqualTo("https://news.example.com/1");
+        verify(cleaningProducer, times(1)).sendBatch(anyList());
     }
 
     @Test
@@ -358,21 +388,23 @@ class CleaningServiceTest {
         assertThat(cleanedData.getMetadata()).isNotNull();
         assertThat(cleanedData.getMetadata().get("extracted")).isEqualTo("tika");
         assertThat(cleanedData.getUrl()).isNull(); // Wiki는 URL 없음
+        verify(cleaningProducer, times(1)).sendBatch(anyList());
     }
 
     @Test
     @DisplayName("대량 메시지 처리 (100개)")
     void processBatch_LargeBatch() {
         // Given
-        List<Map<String, Object>> largeMessages = new ArrayList<>();
+        List<KafkaMessage<CollectionPayload>> largeMessages = new ArrayList<>();
         List<RawDataContent> rssDataList = new ArrayList<>();
         List<RawDataContent> wikiDataList = new ArrayList<>();
 
         for (int i = 0; i < 100; i++) {
-            Map<String, Object> message = new HashMap<>();
-            message.put("dataId", "data-id-" + i);
-            message.put("source", i % 2 == 0 ? "rss" : "wiki");
-            largeMessages.add(message);
+            CollectionPayload payload = CollectionPayload.builder()
+                    .dataId("data-id-" + i)
+                    .source(i % 2 == 0 ? "rss" : "wiki")
+                    .build();
+            largeMessages.add(createKafkaMessage(payload));
 
             RawDataContent rawData = RawDataContent.builder()
                     .dataId("data-id-" + i)
@@ -406,5 +438,6 @@ class CleaningServiceTest {
         // Then
         assertThat(result).hasSize(100);
         verify(cleanedDataRepository, times(1)).saveAll(anyList()); // Bulk operation
+        verify(cleaningProducer, times(1)).sendBatch(anyList()); // Kafka 발행
     }
 }
