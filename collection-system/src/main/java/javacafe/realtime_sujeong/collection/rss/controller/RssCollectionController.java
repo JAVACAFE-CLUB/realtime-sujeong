@@ -17,7 +17,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/collection/rss")
+@RequestMapping("/api/rss")
 @RequiredArgsConstructor
 public class RssCollectionController {
 
@@ -31,7 +31,7 @@ public class RssCollectionController {
      *   "source": "chosun"
      * }
      */
-    @PostMapping("/collect")
+    @PostMapping("/collection/run")
     public ResponseEntity<RssCollectionResponse> collectRssFeed(
             @Valid @RequestBody RssCollectionRequest request) {
 

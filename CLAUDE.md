@@ -81,15 +81,41 @@ collection-system/
 ./gradlew bootJar
 ```
 
-### Kafka Environment
+### Kafka Environment (Docker)
 ```bash
-# Start Kafka cluster (Docker)
+# Start Kafka cluster (detached mode)
 docker-compose up -d
+
+# Check Kafka container status
+docker-compose ps
+
+# View logs
+docker-compose logs -f kafka        # Kafka logs
+docker-compose logs -f zookeeper    # Zookeeper logs
+docker-compose logs -f kafka-ui     # Kafka UI logs
+
+# Stop Kafka cluster (keep data)
+docker-compose stop
+
+# Stop and remove containers (keep data)
+docker-compose down
+
+# Stop and remove containers + volumes (delete all data)
+docker-compose down -v
+
+# Restart Kafka cluster
+docker-compose restart
 
 # Check Kafka topics
 docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 
-# Kafka Web UI
+# Create a topic manually
+docker exec kafka kafka-topics --bootstrap-server localhost:9092 --create --topic test-topic --partitions 3 --replication-factor 1
+
+# Describe a topic
+docker exec kafka kafka-topics --bootstrap-server localhost:9092 --describe --topic collection-to-cleaning
+
+# Kafka Web UI (Kafka UI)
 open http://localhost:8080
 ```
 
@@ -177,23 +203,56 @@ KafkaMessage<T> {
 
 ### Implementation Status
 
-1. **collection-system**: 🚧 **진행 중** - 도메인 중심 아키텍처로 구현 중
-   - ✅ Phase 1: 디렉토리 구조 생성 완료
-   - 📋 Phase 2~11: 구현 예정
+1. **collection-system**: ✅ **구현 완료** - 도메인 중심 아키텍처
+   - ✅ RSS 수집 (실시간 API)
+   - ✅ Wiki 수집 (Spring Batch)
+   - ✅ MongoDB 저장 (rss_raw_data, wiki_raw_data)
+   - ✅ Kafka Producer (collection-to-cleaning)
+   - ✅ 중복 제거 (SHA-256 기반)
 
-2. **common**: 📋 **미구현** - 공통 모듈
-   - Kafka 메시지 포맷
-   - 공통 상수 및 유틸리티
+2. **common**: ✅ **구현 완료** - 공통 모듈
+   - ✅ Kafka 메시지 포맷 (KafkaMessage, CollectionPayload, CleaningPayload)
+   - ✅ 공통 상수 (Topics, EventTypes, Collections)
+   - ✅ DTO (WikiPage, SourceDetails)
 
-3. **cleaning-system**: 📋 **미구현** - 데이터 정제 시스템
+3. **cleaning-system**: ✅ **구현 완료** - 데이터 정제 시스템
+   - ✅ Kafka Consumer (배치 처리)
+   - ✅ RawDataFetcher (RSS, Wiki)
+   - ✅ Content Cleaning (Tika, Jsoup)
+   - ✅ Language Detection
+   - ✅ MongoDB 저장 (cleaned_data)
+   - ✅ Kafka Producer (cleaning-to-indexing)
+
 4. **indexing-system**: 📋 **미구현** - 검색 인덱싱 시스템
 5. **serving-system**: 📋 **미구현** - REST API 서비스
 
-### Planned Data Pipeline
+### Current Data Pipeline (Working!)
 ```
-RSS/Wiki 수집 → MongoDB 저장 → Kafka 메시지 전송 → collection-to-cleaning Topic
-                                                  ↓
-                                              (Cleaning System)
+[RSS/Wiki Sources]
+        ↓
+[Collection System]
+  - RSS: API 호출 → 본문 크롤링
+  - Wiki: XML 파싱 (JAXB)
+        ↓
+[MongoDB: raw_data]
+  - rss_raw_data
+  - wiki_raw_data
+        ↓
+[Kafka: collection-to-cleaning]
+  - Payload: dataId, source, mongoCollectionName (메타데이터만)
+        ↓
+[Cleaning System]
+  - MongoDB에서 raw data 조회
+  - 정제 (Tika, Jsoup)
+  - 언어 감지
+        ↓
+[MongoDB: cleaned_data]
+  - cleanedContent, language, metadata
+        ↓
+[Kafka: cleaning-to-indexing]
+  - Payload: dataId, source, mongoCollectionName (메타데이터만)
+        ↓
+[Indexing System] ← 🚧 구현 예정
 ```
 
 ## Domain Models
@@ -287,22 +346,39 @@ Controller → Service → Repository
 - 공통 설정
 - 유틸리티
 
-## Current Implementation Phase
+## Kafka Message Design (Important!)
 
-**Branch**: `feature/20251025/collection-system`
+### 메타데이터만 전송하는 설계
 
-**Progress**:
-- ✅ Phase 1: 디렉토리 구조 생성 (완료)
-- 📋 Phase 2: 도메인 레이어 구현 (예정)
-- 📋 Phase 3: 공통 유틸리티 구현 (예정)
-- 📋 Phase 4: RSS Collector 구현 (예정)
-- 📋 Phase 5: Wiki Collector 구현 (예정)
-- 📋 Phase 6: Service 레이어 구현 (예정)
-- 📋 Phase 7: Batch 레이어 구현 (예정)
-- 📋 Phase 8: Controller 레이어 구현 (예정)
-- 📋 Phase 9: Kafka & Config 구현 (예정)
-- 📋 Phase 10: 테스트 코드 작성 (예정)
-- 📋 Phase 11: 빌드 검증 (예정)
+Kafka 메시지는 **메타데이터만** 전송하고, 실제 데이터는 MongoDB에서 조회합니다.
+
+**이유:**
+- ✅ Kafka 메시지 크기 최소화
+- ✅ 네트워크 부하 감소
+- ✅ Kafka 저장 공간 절약
+- ✅ 일관된 아키텍처
+
+**CollectionPayload** (collection-to-cleaning):
+```java
+{
+  dataId: String              // SHA-256 hash
+  source: String              // "rss", "wiki"
+  mongoCollectionName: String // "rss_raw_data", "wiki_raw_data"
+  priority: String            // "NORMAL", "HIGH", etc.
+  sourceDetails: SourceDetails // Optional
+}
+```
+
+**CleaningPayload** (cleaning-to-indexing):
+```java
+{
+  dataId: String              // SHA-256 hash
+  source: String              // "rss", "wiki"
+  mongoCollectionName: String // "cleaned_data"
+  priority: String            // "NORMAL", "HIGH", etc.
+  sourceDetails: SourceDetails // Optional
+}
+```
 
 ## Migration from Previous Architecture
 

@@ -67,15 +67,13 @@ public class CleaningProducer {
      * @param cleanedData 정제된 데이터
      */
     public void sendSingle(CleanedData cleanedData) {
-        // CleanedData → CleaningPayload 변환
+        // CleanedData → CleaningPayload 변환 (메타데이터만)
         CleaningPayload payload = CleaningPayload.builder()
                 .dataId(cleanedData.getDataId())
                 .source(cleanedData.getSource())
-                .title(cleanedData.getTitle())
-                .cleanedContent(cleanedData.getCleanedContent())
-                .language(cleanedData.getLanguage())
-                .metadata(cleanedData.getMetadata())  // url은 metadata에 포함
-                .processedAt(cleanedData.getProcessedAt())
+                .mongoCollectionName(KafkaConstants.Collections.CLEANED_DATA)
+                .priority("NORMAL")
+                .sourceDetails(null)  // 필요시 추가 가능
                 .build();
 
         // KafkaMessage 래핑
@@ -120,11 +118,9 @@ public class CleaningProducer {
         CleaningPayload payload = CleaningPayload.builder()
                 .dataId(cleanedData.getDataId())
                 .source(cleanedData.getSource())
-                .title(cleanedData.getTitle())
-                .cleanedContent(cleanedData.getCleanedContent())
-                .language(cleanedData.getLanguage())
-                .metadata(cleanedData.getMetadata())  // url은 metadata에 포함
-                .processedAt(cleanedData.getProcessedAt())
+                .mongoCollectionName(KafkaConstants.Collections.CLEANED_DATA)
+                .priority("NORMAL")
+                .sourceDetails(null)  // 필요시 추가 가능
                 .build();
 
         KafkaMessage<CleaningPayload> kafkaMessage = KafkaMessage.<CleaningPayload>builder()

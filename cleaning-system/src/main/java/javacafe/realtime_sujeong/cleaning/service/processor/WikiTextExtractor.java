@@ -1,25 +1,27 @@
 package javacafe.realtime_sujeong.cleaning.service.processor;
 
-import lombok.RequiredArgsConstructor;
+import info.bliki.wiki.filter.PlainTextConverter;
+import info.bliki.wiki.model.WikiModel;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tika.Tika;
-import org.apache.tika.exception.TikaException;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Wiki wikitext를 plain text로 변환하는 Processor
- * Apache Tika를 사용하여 wikitext 마크업 제거
+ * Bliki engine을 사용하여 wikitext 마크업 제거
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class WikiTextExtractor {
 
-    private final Tika tika;
+    private final WikiModel wikiModel;
+
+    public WikiTextExtractor() {
+        // WikiModel 초기화
+        // ${image}와 ${title}은 이미지와 링크 URL 템플릿 (실제로는 사용 안 함)
+        this.wikiModel = new WikiModel("${image}", "${title}");
+    }
 
     /**
      * Wikitext를 plain text로 변환
@@ -34,13 +36,11 @@ public class WikiTextExtractor {
         }
 
         try {
-            // Tika를 사용하여 텍스트 추출
-            // wikitext를 바이트 스트림으로 변환 후 파싱
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(
-                    wikitext.getBytes(StandardCharsets.UTF_8)
-            );
+            // Bliki를 사용하여 wikitext를 plain text로 변환
+            String plainText = wikiModel.render(new PlainTextConverter(), wikitext);
 
-            String plainText = tika.parseToString(inputStream);
+            // 추가 정리 (과도한 공백, 줄바꿈 정리)
+            plainText = normalizeWhitespace(plainText);
 
             log.debug("Extracted plain text: {} chars from {} chars wikitext",
                     plainText.length(), wikitext.length());
@@ -49,19 +49,32 @@ public class WikiTextExtractor {
 
         } catch (IOException e) {
             log.error("IO error while extracting text from wikitext", e);
-            // IO 에러 시 원본 반환 (fallback)
-            return wikitext;
-
-        } catch (TikaException e) {
-            log.error("Tika parsing error while extracting text from wikitext", e);
-            // Tika 파싱 에러 시 원본 반환 (fallback)
+            // Fallback: 원본 반환
             return wikitext;
 
         } catch (Exception e) {
             log.error("Unexpected error while extracting text from wikitext", e);
-            // 예상치 못한 에러 시 원본 반환 (fallback)
+            // Fallback: 원본 반환
             return wikitext;
         }
+    }
+
+    /**
+     * 공백 정규화 (과도한 공백, 줄바꿈 정리)
+     */
+    private String normalizeWhitespace(String text) {
+        if (text == null) return "";
+
+        // 연속된 공백을 하나로
+        text = text.replaceAll("[ \\t]+", " ");
+
+        // 연속된 줄바꿈을 최대 2개로
+        text = text.replaceAll("\\n{3,}", "\n\n");
+
+        // 앞뒤 공백 제거
+        text = text.trim();
+
+        return text;
     }
 
     /**

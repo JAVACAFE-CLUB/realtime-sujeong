@@ -5,12 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
 /**
  * Cleaning System에서 Indexing System으로 전송하는 페이로드
- * 정제 완료된 데이터 정보
+ * 정제 완료된 데이터의 메타데이터 정보
  */
 @Data
 @Builder
@@ -29,31 +26,20 @@ public class CleaningPayload {
     private String source;
 
     /**
-     * 문서 제목
+     * MongoDB 컬렉션 이름
+     * 예: cleaned_data
      */
-    private String title;
+    private String mongoCollectionName;
 
     /**
-     * 정제된 본문 텍스트
+     * 처리 우선순위 (URGENT, HIGH, NORMAL, LOW)
      */
-    private String cleanedContent;
+    @Builder.Default
+    private String priority = "NORMAL";
 
     /**
-     * 언어 코드 (ko, en, ja 등)
+     * 소스별 상세 정보 (Optional)
+     * RSS: RssSourceDetails, Wiki: WikiSourceDetails
      */
-    private String language;
-
-    /**
-     * 메타데이터
-     * - originalLength: 원본 길이
-     * - cleanedLength: 정제 후 길이
-     * - strategyName: RSS 전략명 (RSS만)
-     * - url: 원본 URL (RSS만)
-     */
-    private Map<String, Object> metadata;
-
-    /**
-     * 정제 처리 완료 시각
-     */
-    private LocalDateTime processedAt;
+    private SourceDetails sourceDetails;
 }
