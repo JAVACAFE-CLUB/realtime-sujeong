@@ -1,4 +1,4 @@
-package javacafe.realtime_sujeong.collection.wiki.dto;
+package javacafe.realtime_sujeong.common.dto;
 
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 

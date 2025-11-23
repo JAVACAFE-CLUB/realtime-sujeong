@@ -1,6 +1,6 @@
 package javacafe.realtime_sujeong.collection.wiki.batch.reader;
 
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.item.xml.builder.StaxEventItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;

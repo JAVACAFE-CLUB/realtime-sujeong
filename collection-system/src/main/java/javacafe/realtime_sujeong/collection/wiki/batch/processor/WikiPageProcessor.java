@@ -1,6 +1,6 @@
 package javacafe.realtime_sujeong.collection.wiki.batch.processor;
 
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import javacafe.realtime_sujeong.collection.wiki.domain.WikiRawData;
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +35,21 @@ public class WikiPageProcessor implements ItemProcessor<WikiPage, WikiRawData> {
                 log.info("Processor 진행상황: {}개 처리 완료", count);
             }
 
+            // 디버깅: WikiPage 객체 상태 확인
+            if (count <= 3) {
+                log.info("=== WikiPage 디버깅 ({}번째) ===", count);
+                log.info("wikiPage null? {}", wikiPage == null);
+                if (wikiPage != null) {
+                    log.info("title: {}", wikiPage.getTitle());
+                    log.info("pageId: {}", wikiPage.getPageId());
+                    log.info("namespace: {}", wikiPage.getNamespace());
+                    log.info("revision null? {}", wikiPage.getRevision() == null);
+                    if (wikiPage.getRevision() != null) {
+                        log.info("revision.text null? {}", wikiPage.getRevision().getText() == null);
+                    }
+                }
+            }
+
             // 1. 필수 필드 검증
             if (!isValid(wikiPage)) {
                 if (wikiPage != null) {
@@ -45,11 +60,9 @@ public class WikiPageProcessor implements ItemProcessor<WikiPage, WikiRawData> {
                 return null;  // null 반환 시 해당 아이템 skip
             }
 
-            // 2. DataId 생성
+            // 2. DataId 생성 (pageId 그대로 사용)
             String pageId = wikiPage.getPageId();
-            String revisionId = wikiPage.getRevision() != null ?
-                    wikiPage.getRevision().getRevisionId() : "unknown";
-            String dataId = dataIdGenerator.generateWikiDataId(pageId, revisionId);
+            String dataId = dataIdGenerator.generateWikiDataId(pageId);
 
             // 3. WikiRawData 엔티티 생성
             WikiRawData wikiRawData = WikiRawData.builder()

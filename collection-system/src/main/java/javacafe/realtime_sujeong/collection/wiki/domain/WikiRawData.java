@@ -1,6 +1,6 @@
 package javacafe.realtime_sujeong.collection.wiki.domain;
 
-import javacafe.realtime_sujeong.collection.wiki.dto.WikiPage;
+import javacafe.realtime_sujeong.common.dto.WikiPage;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
@@ -24,7 +24,9 @@ public class WikiRawData {
     private String id;
 
     /**
-     * Wiki 데이터 고유 식별자 (SHA-256: pageId + revisionId)
+     * Wiki 데이터 고유 식별자 (pageId 그대로 사용)
+     * - 같은 페이지는 같은 dataId → Kafka 파티션 순서 보장
+     * - 새 리비전(timestamp 변경)은 upsert로 덮어씀 (최신 버전만 유지)
      */
     @Indexed(unique = true)
     private String dataId;
@@ -57,6 +59,28 @@ public class WikiRawData {
      */
     @Indexed
     private LocalDateTime collectedAt;
+
+    /**
+     * 더 최신 리비전으로 업데이트 (upsert용)
+     * timestamp가 더 최신인 경우에만 호출해야 함
+     */
+    public void updateFromNewer(WikiPage newWikiPage, String title, String namespace) {
+        this.wikiPage = newWikiPage;
+        this.title = title;
+        this.namespace = namespace;
+        this.collectedAt = LocalDateTime.now();
+    }
+
+    /**
+     * timestamp 비교 (이 데이터가 더 오래되었는지)
+     */
+    public boolean isOlderThan(LocalDateTime otherTimestamp) {
+        if (this.wikiPage == null || this.wikiPage.getRevision() == null) return true;
+        LocalDateTime thisTimestamp = this.wikiPage.getRevision().getTimestamp();
+        if (thisTimestamp == null) return true;
+        if (otherTimestamp == null) return false;
+        return thisTimestamp.isBefore(otherTimestamp);
+    }
 
     /**
      * source를 항상 "wiki"로 설정하는 빌더 패턴 확장

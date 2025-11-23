@@ -17,7 +17,8 @@
 
 ### 핵심 요구사항
 - ✅ **도메인 중심 설계**: RSS와 Wiki를 완전히 독립된 바운디드 컨텍스트로 분리
-- ✅ **데이터 무결성**: 중복 방지를 위한 고유 ID 생성 (SHA-256)
+- ✅ **데이터 무결성**: URL/pageId를 dataId로 사용, 최신 버전만 유지 (upsert)
+- ✅ **순서 보장**: 같은 dataId는 같은 Kafka 파티션으로 전송
 - ✅ **확장성**: 각 도메인이 독립적으로 확장 가능
 - ✅ **비동기 처리**: Kafka를 통한 느슨한 결합
 - ✅ **오류 처리**: 재시도 로직 및 Dead Letter Queue
@@ -119,7 +120,7 @@ public class RssRawData {
     private String id;                    // MongoDB _id
 
     @Indexed(unique = true)
-    private String dataId;                // SHA-256(link + pubDate)
+    private String dataId;                // URL(link) 그대로 사용
 
     @Indexed
     private String source = "rss";        // 항상 "rss"
@@ -135,10 +136,11 @@ public class RssRawData {
 ```
 
 **설계 의도**:
-- `dataId`: 중복 방지를 위한 비즈니스 키
+- `dataId`: URL 그대로 사용 (같은 URL은 항상 같은 dataId → 최신 버전만 유지)
 - `source`: 고정값 "rss" (도메인 식별자)
 - `strategyName`: 어떤 파싱 전략을 사용했는지 추적
 - `rssItem`: 타입 안전성 보장 (Object가 아닌 구체적 타입)
+- Kafka Key로 dataId 사용 → 같은 URL은 같은 파티션 → 순서 보장
 
 #### RssItem (Value Object)
 ```java
@@ -165,7 +167,7 @@ public class WikiRawData {
     private String id;                    // MongoDB _id
 
     @Indexed(unique = true)
-    private String dataId;                // SHA-256(pageId + revisionId)
+    private String dataId;                // pageId 그대로 사용
 
     @Indexed
     private String source = "wiki";       // 항상 "wiki"
@@ -184,9 +186,11 @@ public class WikiRawData {
 ```
 
 **설계 의도**:
+- `dataId`: pageId 그대로 사용 (같은 페이지는 항상 같은 dataId → 최신 리비전만 유지)
 - `namespace`: Wiki 문서 분류 (일반 문서만 수집 가능)
 - `title`: 인덱싱을 통한 빠른 검색
 - `wikiPage`: JAXB로 파싱된 XML 데이터
+- Kafka Key로 dataId 사용 → 같은 페이지는 같은 파티션 → 순서 보장
 
 ---
 
@@ -212,9 +216,9 @@ public class WikiRawData {
 2. Controller가 Service에 위임
 3. Strategy Manager가 URL 기반으로 적절한 전략 선택
 4. Strategy가 RSS 피드 파싱 → 각 아이템 크롤링
-5. DataIdGenerator가 `SHA-256(link + pubDate)` 생성
-6. Repository에 중복 체크 후 저장
-7. Kafka로 메시지 전송 (`collection-to-cleaning` topic)
+5. `dataId = link` (URL 그대로 사용)
+6. Repository에 upsert (pubDate 비교하여 최신만 저장)
+7. Kafka로 메시지 전송 (`collection-to-cleaning` topic, dataId를 Key로 사용)
 
 ### Wiki 수집 플로우 (Batch)
 
@@ -238,11 +242,10 @@ public class WikiRawData {
 4. **Processor**:
    - 필수 필드 검증 (pageId, title, revision)
    - WikiPage → WikiRawData 변환
-   - DataIdGenerator로 `SHA-256(pageId + revisionId)` 생성
+   - `dataId = pageId` (pageId 그대로 사용)
 5. **Writer** (Chunk 단위):
-   - 청크 내 중복 체크 (Bulk Query)
-   - MongoDB Bulk Insert
-   - Kafka 메시지 배치 전송
+   - MongoDB upsert (timestamp 비교하여 최신만 저장)
+   - Kafka 메시지 배치 전송 (dataId를 Key로 사용)
 
 ---
 
@@ -416,7 +419,7 @@ public class WikiRawData {
 ```json
 {
   "_id": "ObjectId",
-  "dataId": "SHA-256 hash",           // unique index
+  "dataId": "https://...",            // URL 그대로, unique index
   "source": "rss",                    // index
   "strategyName": "조선일보",         // index
   "rssItem": {
@@ -438,7 +441,7 @@ public class WikiRawData {
 ```json
 {
   "_id": "ObjectId",
-  "dataId": "SHA-256 hash",           // unique index
+  "dataId": "12345",                  // pageId 그대로, unique index
   "source": "wiki",                   // index
   "namespace": "0",                   // index (0=일반 문서)
   "title": "대한민국",                // index
@@ -474,7 +477,7 @@ public class WikiRawData {
   "timestamp": "2025-10-25T10:05:00",
   "eventType": "DATA_COLLECTED",
   "payload": {
-    "dataId": "SHA-256 hash",
+    "dataId": "https://... 또는 pageId",  // URL(RSS) 또는 pageId(Wiki)
     "source": "rss | wiki",
     "mongoCollectionName": "rss_raw_data | wiki_raw_data",
     "priority": "normal",

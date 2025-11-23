@@ -81,15 +81,41 @@ collection-system/
 ./gradlew bootJar
 ```
 
-### Kafka Environment
+### Kafka Environment (Docker)
 ```bash
-# Start Kafka cluster (Docker)
+# Start Kafka cluster (detached mode)
 docker-compose up -d
+
+# Check Kafka container status
+docker-compose ps
+
+# View logs
+docker-compose logs -f kafka        # Kafka logs
+docker-compose logs -f zookeeper    # Zookeeper logs
+docker-compose logs -f kafka-ui     # Kafka UI logs
+
+# Stop Kafka cluster (keep data)
+docker-compose stop
+
+# Stop and remove containers (keep data)
+docker-compose down
+
+# Stop and remove containers + volumes (delete all data)
+docker-compose down -v
+
+# Restart Kafka cluster
+docker-compose restart
 
 # Check Kafka topics
 docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 
-# Kafka Web UI
+# Create a topic manually
+docker exec kafka kafka-topics --bootstrap-server localhost:9092 --create --topic test-topic --partitions 3 --replication-factor 1
+
+# Describe a topic
+docker exec kafka kafka-topics --bootstrap-server localhost:9092 --describe --topic collection-to-cleaning
+
+# Kafka Web UI (Kafka UI)
 open http://localhost:8080
 ```
 
@@ -157,9 +183,11 @@ KafkaMessage<T> {
 - **Low Coupling**: 도메인 간 의존성 최소화
 
 ### 2. Data Integrity
-- Each data item has unique ID (SHA-256 hash) to prevent duplicates
-- RSS: `SHA-256(link + pubDate)`
-- Wiki: `SHA-256(pageId + revisionId)`
+- Each data item has unique ID to ensure only the latest version is stored
+- RSS: `dataId = link` (URL 그대로 사용)
+- Wiki: `dataId = pageId` (페이지 ID 그대로 사용)
+- 같은 URL/pageId의 새 버전이 들어오면 upsert로 덮어씀 (최신 버전만 유지)
+- Kafka Key로 dataId 사용 → 같은 데이터는 같은 파티션 → 순서 보장
 
 ### 3. Async Processing
 - Kafka-based message passing between modules
@@ -177,23 +205,56 @@ KafkaMessage<T> {
 
 ### Implementation Status
 
-1. **collection-system**: 🚧 **진행 중** - 도메인 중심 아키텍처로 구현 중
-   - ✅ Phase 1: 디렉토리 구조 생성 완료
-   - 📋 Phase 2~11: 구현 예정
+1. **collection-system**: ✅ **구현 완료** - 도메인 중심 아키텍처
+   - ✅ RSS 수집 (실시간 API)
+   - ✅ Wiki 수집 (Spring Batch)
+   - ✅ MongoDB 저장 (rss_raw_data, wiki_raw_data)
+   - ✅ Kafka Producer (collection-to-cleaning)
+   - ✅ 최신 버전만 유지 (URL/pageId 기반 upsert)
 
-2. **common**: 📋 **미구현** - 공통 모듈
-   - Kafka 메시지 포맷
-   - 공통 상수 및 유틸리티
+2. **common**: ✅ **구현 완료** - 공통 모듈
+   - ✅ Kafka 메시지 포맷 (KafkaMessage, CollectionPayload, CleaningPayload)
+   - ✅ 공통 상수 (Topics, EventTypes, Collections)
+   - ✅ DTO (WikiPage, SourceDetails)
 
-3. **cleaning-system**: 📋 **미구현** - 데이터 정제 시스템
+3. **cleaning-system**: ✅ **구현 완료** - 데이터 정제 시스템
+   - ✅ Kafka Consumer (배치 처리)
+   - ✅ RawDataFetcher (RSS, Wiki)
+   - ✅ Content Cleaning (Tika, Jsoup)
+   - ✅ Language Detection
+   - ✅ MongoDB 저장 (cleaned_data)
+   - ✅ Kafka Producer (cleaning-to-indexing)
+
 4. **indexing-system**: 📋 **미구현** - 검색 인덱싱 시스템
 5. **serving-system**: 📋 **미구현** - REST API 서비스
 
-### Planned Data Pipeline
+### Current Data Pipeline (Working!)
 ```
-RSS/Wiki 수집 → MongoDB 저장 → Kafka 메시지 전송 → collection-to-cleaning Topic
-                                                  ↓
-                                              (Cleaning System)
+[RSS/Wiki Sources]
+        ↓
+[Collection System]
+  - RSS: API 호출 → 본문 크롤링
+  - Wiki: XML 파싱 (JAXB)
+        ↓
+[MongoDB: raw_data]
+  - rss_raw_data
+  - wiki_raw_data
+        ↓
+[Kafka: collection-to-cleaning]
+  - Payload: dataId, source, mongoCollectionName (메타데이터만)
+        ↓
+[Cleaning System]
+  - MongoDB에서 raw data 조회
+  - 정제 (Tika, Jsoup)
+  - 언어 감지
+        ↓
+[MongoDB: cleaned_data]
+  - cleanedContent, language, metadata
+        ↓
+[Kafka: cleaning-to-indexing]
+  - Payload: dataId, source, mongoCollectionName (메타데이터만)
+        ↓
+[Indexing System] ← 🚧 구현 예정
 ```
 
 ## Domain Models
@@ -201,7 +262,7 @@ RSS/Wiki 수집 → MongoDB 저장 → Kafka 메시지 전송 → collection-to-
 ### RSS Domain
 ```java
 // collection/rss/domain/RssRawData.java
-- dataId: String (SHA-256 hash)
+- dataId: String (URL 그대로 사용, unique)
 - source: String (항상 "rss")
 - strategyName: String (조선일보, 매일경제 등)
 - rssItem: RssItem
@@ -211,7 +272,7 @@ RSS/Wiki 수집 → MongoDB 저장 → Kafka 메시지 전송 → collection-to-
 ### Wiki Domain
 ```java
 // collection/wiki/domain/WikiRawData.java
-- dataId: String (SHA-256 hash)
+- dataId: String (pageId 그대로 사용, unique)
 - source: String (항상 "wiki")
 - namespace: String
 - title: String
@@ -222,22 +283,23 @@ RSS/Wiki 수집 → MongoDB 저장 → Kafka 메시지 전송 → collection-to-
 ## Data ID Generation Rules
 
 ### RSS Collection System
-- **ID Format**: SHA-256 hash of `link + pubDate`
-- **Purpose**: Ensures uniqueness and prevents duplicate collection across RSS feeds
-- **Example**: `SHA-256("https://www.mk.co.kr/news/politics/11425193" + "2025-09-21T15:03:52")`
-- **MongoDB Storage**: Used as `dataId` field for upsert operations
-- **Kafka Message**: Sent as `dataId` in payload for cleaning-system processing
+- **ID Format**: URL(link) 그대로 사용
+- **Purpose**: 같은 URL의 최신 버전만 유지, Kafka 파티션 순서 보장
+- **Example**: `https://www.mk.co.kr/news/politics/11425193`
+- **MongoDB Storage**: `dataId` 필드로 upsert (pubDate 비교하여 최신만 저장)
+- **Kafka Key**: `dataId`를 Key로 사용 → 같은 URL은 같은 파티션 → 순서 보장
 
 ### Wiki Collection System
-- **ID Format**: SHA-256 hash of `pageId + revisionId`
-- **Purpose**: Ensures uniqueness per revision
-- **MongoDB Storage**: Used as `dataId` field for upsert operations
+- **ID Format**: pageId 그대로 사용
+- **Purpose**: 같은 페이지의 최신 리비전만 유지
+- **MongoDB Storage**: `dataId` 필드로 upsert (timestamp 비교하여 최신만 저장)
+- **Kafka Key**: `dataId`를 Key로 사용 → 같은 페이지는 같은 파티션 → 순서 보장
 
 ### Implementation Guidelines
-- Use appropriate fields as hash input for consistency
-- Apply UTF-8 encoding before hashing
-- Store as hexadecimal string in MongoDB
-- Same article republished with different timestamp gets new ID (captures updates)
+- SHA-256 해시 불필요 (URL/pageId 자체가 고유 식별자)
+- 디버깅/로깅 시 dataId로 원본 URL 즉시 확인 가능
+- upsert 시 pubDate/timestamp 비교하여 구버전 덮어쓰기 방지
+- 같은 dataId는 같은 Kafka 파티션으로 전송되어 처리 순서 보장
 
 ## Development Guidelines
 
@@ -287,22 +349,39 @@ Controller → Service → Repository
 - 공통 설정
 - 유틸리티
 
-## Current Implementation Phase
+## Kafka Message Design (Important!)
 
-**Branch**: `feature/20251025/collection-system`
+### 메타데이터만 전송하는 설계
 
-**Progress**:
-- ✅ Phase 1: 디렉토리 구조 생성 (완료)
-- 📋 Phase 2: 도메인 레이어 구현 (예정)
-- 📋 Phase 3: 공통 유틸리티 구현 (예정)
-- 📋 Phase 4: RSS Collector 구현 (예정)
-- 📋 Phase 5: Wiki Collector 구현 (예정)
-- 📋 Phase 6: Service 레이어 구현 (예정)
-- 📋 Phase 7: Batch 레이어 구현 (예정)
-- 📋 Phase 8: Controller 레이어 구현 (예정)
-- 📋 Phase 9: Kafka & Config 구현 (예정)
-- 📋 Phase 10: 테스트 코드 작성 (예정)
-- 📋 Phase 11: 빌드 검증 (예정)
+Kafka 메시지는 **메타데이터만** 전송하고, 실제 데이터는 MongoDB에서 조회합니다.
+
+**이유:**
+- ✅ Kafka 메시지 크기 최소화
+- ✅ 네트워크 부하 감소
+- ✅ Kafka 저장 공간 절약
+- ✅ 일관된 아키텍처
+
+**CollectionPayload** (collection-to-cleaning):
+```java
+{
+  dataId: String              // URL(RSS) 또는 pageId(Wiki)
+  source: String              // "rss", "wiki"
+  mongoCollectionName: String // "rss_raw_data", "wiki_raw_data"
+  priority: String            // "NORMAL", "HIGH", etc.
+  sourceDetails: SourceDetails // Optional
+}
+```
+
+**CleaningPayload** (cleaning-to-indexing):
+```java
+{
+  dataId: String              // URL(RSS) 또는 pageId(Wiki)
+  source: String              // "rss", "wiki"
+  mongoCollectionName: String // "cleaned_data"
+  priority: String            // "NORMAL", "HIGH", etc.
+  sourceDetails: SourceDetails // Optional
+}
+```
 
 ## Migration from Previous Architecture
 

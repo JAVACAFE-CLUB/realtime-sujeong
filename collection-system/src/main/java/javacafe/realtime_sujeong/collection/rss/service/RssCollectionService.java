@@ -2,6 +2,8 @@ package javacafe.realtime_sujeong.collection.rss.service;
 
 import javacafe.realtime_sujeong.collection.common.util.DataIdGenerator;
 import javacafe.realtime_sujeong.collection.kafka.service.KafkaMessageService;
+import javacafe.realtime_sujeong.common.kafka.constants.KafkaConstants;
+import javacafe.realtime_sujeong.common.kafka.dto.RssSourceDetails;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleContentCrawler;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategy;
 import javacafe.realtime_sujeong.collection.rss.collector.crawler.ArticleCrawlingStrategyFactory;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * RSS 수집 서비스
@@ -57,15 +60,15 @@ public class RssCollectionService {
         // 2. 각 아이템 처리 (본문 크롤링 + 저장)
         for (RssItemDto item : items) {
             try {
-                // DataId 생성 (link + pubDate)
-                String dataId = DataIdGenerator.generateRssDataId(
-                        item.getLink(),
-                        item.getPubDate()
-                );
+                // DataId 생성 (URL 그대로 사용)
+                String dataId = DataIdGenerator.generateRssDataId(item.getLink());
 
-                // 중복 체크
-                if (rssRawDataRepository.existsByDataId(dataId)) {
-                    log.debug("중복 데이터 스킵 - dataId: {}", dataId);
+                // 기존 데이터 조회 (upsert를 위해)
+                Optional<RssRawData> existingData = rssRawDataRepository.findByDataId(dataId);
+                
+                // 기존 데이터가 있고, 더 최신이면 스킵
+                if (existingData.isPresent() && !existingData.get().isOlderThan(item.getPubDate())) {
+                    log.debug("기존 데이터가 더 최신이므로 스킵 - dataId: {}", dataId);
                     duplicateCount++;
                     continue;
                 }
@@ -83,15 +86,43 @@ public class RssCollectionService {
                         .source(item.getSource())
                         .build();
 
-                // MongoDB 저장
-                RssRawData rssRawData = itemWithContent.toEntity(dataId);
+                // MongoDB 저장 (upsert: 기존 데이터 업데이트 또는 신규 생성)
+                RssRawData rssRawData;
+                if (existingData.isPresent()) {
+                    // 기존 데이터 업데이트 (더 최신 버전으로)
+                    rssRawData = existingData.get();
+                    rssRawData.updateFromNewer(
+                            item.getTitle(),
+                            item.getPubDate(),
+                            item.getDescription(),
+                            content
+                    );
+                    log.debug("기존 데이터 업데이트 - dataId: {}", dataId);
+                } else {
+                    // 신규 데이터 생성
+                    rssRawData = itemWithContent.toEntity(dataId);
+                }
                 rssRawDataRepository.save(rssRawData);
 
                 log.debug("데이터 저장 완료 - dataId: {}, title: {}, content: {} 글자",
                         dataId, item.getTitle(), content.length());
 
+                // RssSourceDetails 생성
+                RssSourceDetails sourceDetails = RssSourceDetails.builder()
+                        .strategyName(source)
+                        .title(item.getTitle())
+                        .url(item.getLink())
+                        .author(null)  // RSS에 작성자 정보 없음
+                        .publishedAt(item.getPubDate())
+                        .build();
+
                 // Kafka 메시지 전송 (비동기)
-                kafkaMessageService.sendRssCollectedMessage(dataId, source)
+                kafkaMessageService.sendDataCollectedMessage(
+                                dataId,
+                                "rss",  // cleaning-system의 RssRawDataFetcher가 기대하는 source 타입
+                                KafkaConstants.Collections.RSS_RAW_DATA,
+                                sourceDetails
+                        )
                         .exceptionally(throwable -> {
                             log.warn("Kafka 메시지 전송 실패했지만 수집은 완료됨 - dataId: {}", dataId, throwable);
                             return false;

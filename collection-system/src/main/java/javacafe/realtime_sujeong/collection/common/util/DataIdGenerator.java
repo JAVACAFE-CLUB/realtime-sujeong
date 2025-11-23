@@ -10,23 +10,27 @@ public class DataIdGenerator {
 
     /**
      * RSS 데이터 ID 생성
-     * @param link RSS 아이템 링크
-     * @param pubDate 발행 시간
-     * @return SHA-256 해시 ID
+     * URL(link)을 그대로 dataId로 사용
+     * - 같은 URL은 같은 dataId → 같은 Kafka 파티션 → 순서 보장
+     * - 새 버전(pubDate 변경)은 upsert로 덮어씀
+     * 
+     * @param link RSS 아이템 링크 (URL)
+     * @return URL 그대로 (dataId)
      */
-    public static String generateRssDataId(String link, LocalDateTime pubDate) {
-        String input = link + pubDate.toString();
-        return DigestUtils.sha256Hex(input);
+    public static String generateRssDataId(String link) {
+        return link;
     }
 
     /**
      * Wiki 데이터 ID 생성
+     * pageId를 그대로 dataId로 사용
+     * - 같은 페이지는 같은 dataId → 같은 Kafka 파티션 → 순서 보장
+     * - 새 리비전(timestamp 변경)은 upsert로 덮어씀
+     * 
      * @param pageId Wiki 페이지 ID
-     * @param revisionId 리비전 ID
-     * @return SHA-256 해시 ID
+     * @return pageId 그대로 (dataId)
      */
-    public static String generateWikiDataId(String pageId, String revisionId) {
-        String input = "wiki:" + pageId + ":" + revisionId;
-        return DigestUtils.sha256Hex(input);
+    public static String generateWikiDataId(String pageId) {
+        return pageId;
     }
 }

@@ -1,5 +1,6 @@
 package javacafe.realtime_sujeong.collection.rss.collector.dto;
 
+import javacafe.realtime_sujeong.collection.rss.domain.RssRawData;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -46,8 +47,8 @@ public class RssItemDto {
     /**
      * RssRawData로 변환
      */
-    public javacafe.realtime_sujeong.collection.rss.domain.RssRawData toEntity(String dataId) {
-        return javacafe.realtime_sujeong.collection.rss.domain.RssRawData.builder()
+    public RssRawData toEntity(String dataId) {
+        return RssRawData.builder()
                 .dataId(dataId)
                 .source(source)
                 .title(title)

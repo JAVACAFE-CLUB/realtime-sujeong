@@ -3,141 +3,92 @@ package javacafe.realtime_sujeong.collection.common.util;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("DataIdGenerator 테스트")
 class DataIdGeneratorTest {
 
     @Test
-    @DisplayName("RSS 데이터 ID 생성 - 정상 케이스")
-    void generateRssDataId_Success() {
+    @DisplayName("RSS 데이터 ID 생성 - URL 그대로 반환")
+    void generateRssDataId_ReturnsUrlDirectly() {
         // given
         String link = "https://www.example.com/news/12345";
-        String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
+        String dataId = DataIdGenerator.generateRssDataId(link);
 
         // then
-        assertThat(dataId).isNotNull();
-        assertThat(dataId).hasSize(64); // SHA-256은 64자리 16진수
-        assertThat(dataId).matches("^[a-f0-9]{64}$"); // 소문자 16진수
+        assertThat(dataId).isEqualTo(link);
     }
 
     @Test
-    @DisplayName("RSS 데이터 ID 생성 - 동일 입력시 동일 ID 생성")
-    void generateRssDataId_SameInputSameOutput() {
+    @DisplayName("RSS 데이터 ID 생성 - 동일 URL은 동일 ID 생성")
+    void generateRssDataId_SameUrlSameOutput() {
         // given
         String link = "https://www.example.com/news/12345";
-        String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId1 = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
-        String dataId2 = DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate));
+        String dataId1 = DataIdGenerator.generateRssDataId(link);
+        String dataId2 = DataIdGenerator.generateRssDataId(link);
 
         // then
         assertThat(dataId1).isEqualTo(dataId2);
     }
 
     @Test
-    @DisplayName("RSS 데이터 ID 생성 - 다른 입력시 다른 ID 생성")
-    void generateRssDataId_DifferentInputDifferentOutput() {
+    @DisplayName("RSS 데이터 ID 생성 - 다른 URL은 다른 ID 생성")
+    void generateRssDataId_DifferentUrlDifferentOutput() {
         // given
         String link1 = "https://www.example.com/news/12345";
         String link2 = "https://www.example.com/news/67890";
-        String pubDate = "2025-10-25T10:30:00";
 
         // when
-        String dataId1 = DataIdGenerator.generateRssDataId(link1, LocalDateTime.parse(pubDate));
-        String dataId2 = DataIdGenerator.generateRssDataId(link2, LocalDateTime.parse(pubDate));
+        String dataId1 = DataIdGenerator.generateRssDataId(link1);
+        String dataId2 = DataIdGenerator.generateRssDataId(link2);
 
         // then
         assertThat(dataId1).isNotEqualTo(dataId2);
     }
 
     @Test
-    @DisplayName("RSS 데이터 ID 생성 - link가 null이면 예외 발생")
-    void generateRssDataId_NullLink_ThrowsException() {
+    @DisplayName("Wiki 데이터 ID 생성 - pageId 그대로 반환")
+    void generateWikiDataId_ReturnsPageIdDirectly() {
         // given
-        String link = null;
-        String pubDate = "2025-10-25T10:30:00";
-
-        // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("null일 수 없습니다");
-    }
-
-    @Test
-    @DisplayName("RSS 데이터 ID 생성 - pubDate가 null이면 예외 발생")
-    void generateRssDataId_NullPubDate_ThrowsException() {
-        // given
-        String link = "https://www.example.com/news/12345";
-        String pubDate = null;
-
-        // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateRssDataId(link, LocalDateTime.parse(pubDate)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("null일 수 없습니다");
-    }
-
-    @Test
-    @DisplayName("Wiki 데이터 ID 생성 - 정상 케이스")
-    void generateWikiDataId_Success() {
-        // given
-        String title = "대한민국";
-        String timestamp = "2025-10-25T10:30:00";
+        String pageId = "12345";
 
         // when
-        String dataId = DataIdGenerator.generateWikiDataId(title, timestamp);
+        String dataId = DataIdGenerator.generateWikiDataId(pageId);
 
         // then
-        assertThat(dataId).isNotNull();
-        assertThat(dataId).hasSize(64);
-        assertThat(dataId).matches("^[a-f0-9]{64}$");
+        assertThat(dataId).isEqualTo(pageId);
     }
 
     @Test
-    @DisplayName("Wiki 데이터 ID 생성 - 동일 입력시 동일 ID 생성")
-    void generateWikiDataId_SameInputSameOutput() {
+    @DisplayName("Wiki 데이터 ID 생성 - 동일 pageId는 동일 ID 생성")
+    void generateWikiDataId_SamePageIdSameOutput() {
         // given
-        String title = "대한민국";
-        String timestamp = "2025-10-25T10:30:00";
+        String pageId = "12345";
 
         // when
-        String dataId1 = DataIdGenerator.generateWikiDataId(title, timestamp);
-        String dataId2 = DataIdGenerator.generateWikiDataId(title, timestamp);
+        String dataId1 = DataIdGenerator.generateWikiDataId(pageId);
+        String dataId2 = DataIdGenerator.generateWikiDataId(pageId);
 
         // then
         assertThat(dataId1).isEqualTo(dataId2);
     }
 
     @Test
-    @DisplayName("Wiki 데이터 ID 생성 - title이 null이면 예외 발생")
-    void generateWikiDataId_NullTitle_ThrowsException() {
+    @DisplayName("Wiki 데이터 ID 생성 - 다른 pageId는 다른 ID 생성")
+    void generateWikiDataId_DifferentPageIdDifferentOutput() {
         // given
-        String title = null;
-        String timestamp = "2025-10-25T10:30:00";
+        String pageId1 = "12345";
+        String pageId2 = "67890";
 
-        // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateWikiDataId(title, timestamp))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("null일 수 없습니다");
-    }
+        // when
+        String dataId1 = DataIdGenerator.generateWikiDataId(pageId1);
+        String dataId2 = DataIdGenerator.generateWikiDataId(pageId2);
 
-    @Test
-    @DisplayName("Wiki 데이터 ID 생성 - timestamp가 null이면 예외 발생")
-    void generateWikiDataId_NullTimestamp_ThrowsException() {
-        // given
-        String title = "대한민국";
-        String timestamp = null;
-
-        // when & then
-        assertThatThrownBy(() -> DataIdGenerator.generateWikiDataId(title, timestamp))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("null일 수 없습니다");
+        // then
+        assertThat(dataId1).isNotEqualTo(dataId2);
     }
 }

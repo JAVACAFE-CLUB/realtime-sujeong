@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/wiki/batch")
+@RequestMapping("/api/wiki")
 @RequiredArgsConstructor
 public class WikiBatchController {
 
@@ -32,13 +32,10 @@ public class WikiBatchController {
         try {
             Map<String, Object> result = wikiBatchService.runWikiCollectionBatch();
             return ResponseEntity.ok(result);
-
         } catch (WikiBatchException.AlreadyRunningException | WikiBatchException.AlreadyCompletedException e) {
             return createErrorResponse(HttpStatus.CONFLICT, e.getMessage());
-
         } catch (WikiBatchException.RestartFailedException | WikiBatchException.InvalidParametersException e) {
             return createErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
-
         } catch (WikiBatchException.ExecutionFailedException e) {
             return createErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }

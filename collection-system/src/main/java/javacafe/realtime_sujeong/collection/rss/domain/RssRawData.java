@@ -27,8 +27,9 @@ public class RssRawData {
     private String id;
 
     /**
-     * 데이터 고유 ID (SHA-256 hash of link + pubDate)
-     * 중복 수집 방지용
+     * 데이터 고유 ID (URL 그대로 사용)
+     * - 같은 URL은 같은 dataId → Kafka 파티션 순서 보장
+     * - 새 버전(pubDate 변경)은 upsert로 덮어씀 (최신 버전만 유지)
      */
     @Indexed(unique = true)
     private String dataId;
@@ -103,6 +104,29 @@ public class RssRawData {
      */
     public void updateStatus(DataStatus status) {
         this.status = status;
+    }
+
+    /**
+     * 더 최신 데이터로 업데이트 (upsert용)
+     * pubDate가 더 최신인 경우에만 호출해야 함
+     */
+    public void updateFromNewer(String title, LocalDateTime pubDate, 
+                                 String description, String content) {
+        this.title = title;
+        this.pubDate = pubDate;
+        this.description = description;
+        this.content = content;
+        this.collectedAt = LocalDateTime.now();
+        this.status = DataStatus.COLLECTED;
+    }
+
+    /**
+     * pubDate 비교 (이 데이터가 더 오래되었는지)
+     */
+    public boolean isOlderThan(LocalDateTime otherPubDate) {
+        if (this.pubDate == null) return true;
+        if (otherPubDate == null) return false;
+        return this.pubDate.isBefore(otherPubDate);
     }
 
     /**
