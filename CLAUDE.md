@@ -183,9 +183,11 @@ KafkaMessage<T> {
 - **Low Coupling**: 도메인 간 의존성 최소화
 
 ### 2. Data Integrity
-- Each data item has unique ID (SHA-256 hash) to prevent duplicates
-- RSS: `SHA-256(link + pubDate)`
-- Wiki: `SHA-256(pageId + revisionId)`
+- Each data item has unique ID to ensure only the latest version is stored
+- RSS: `dataId = link` (URL 그대로 사용)
+- Wiki: `dataId = pageId` (페이지 ID 그대로 사용)
+- 같은 URL/pageId의 새 버전이 들어오면 upsert로 덮어씀 (최신 버전만 유지)
+- Kafka Key로 dataId 사용 → 같은 데이터는 같은 파티션 → 순서 보장
 
 ### 3. Async Processing
 - Kafka-based message passing between modules
@@ -208,7 +210,7 @@ KafkaMessage<T> {
    - ✅ Wiki 수집 (Spring Batch)
    - ✅ MongoDB 저장 (rss_raw_data, wiki_raw_data)
    - ✅ Kafka Producer (collection-to-cleaning)
-   - ✅ 중복 제거 (SHA-256 기반)
+   - ✅ 최신 버전만 유지 (URL/pageId 기반 upsert)
 
 2. **common**: ✅ **구현 완료** - 공통 모듈
    - ✅ Kafka 메시지 포맷 (KafkaMessage, CollectionPayload, CleaningPayload)
@@ -260,7 +262,7 @@ KafkaMessage<T> {
 ### RSS Domain
 ```java
 // collection/rss/domain/RssRawData.java
-- dataId: String (SHA-256 hash)
+- dataId: String (URL 그대로 사용, unique)
 - source: String (항상 "rss")
 - strategyName: String (조선일보, 매일경제 등)
 - rssItem: RssItem
@@ -270,7 +272,7 @@ KafkaMessage<T> {
 ### Wiki Domain
 ```java
 // collection/wiki/domain/WikiRawData.java
-- dataId: String (SHA-256 hash)
+- dataId: String (pageId 그대로 사용, unique)
 - source: String (항상 "wiki")
 - namespace: String
 - title: String
@@ -281,22 +283,23 @@ KafkaMessage<T> {
 ## Data ID Generation Rules
 
 ### RSS Collection System
-- **ID Format**: SHA-256 hash of `link + pubDate`
-- **Purpose**: Ensures uniqueness and prevents duplicate collection across RSS feeds
-- **Example**: `SHA-256("https://www.mk.co.kr/news/politics/11425193" + "2025-09-21T15:03:52")`
-- **MongoDB Storage**: Used as `dataId` field for upsert operations
-- **Kafka Message**: Sent as `dataId` in payload for cleaning-system processing
+- **ID Format**: URL(link) 그대로 사용
+- **Purpose**: 같은 URL의 최신 버전만 유지, Kafka 파티션 순서 보장
+- **Example**: `https://www.mk.co.kr/news/politics/11425193`
+- **MongoDB Storage**: `dataId` 필드로 upsert (pubDate 비교하여 최신만 저장)
+- **Kafka Key**: `dataId`를 Key로 사용 → 같은 URL은 같은 파티션 → 순서 보장
 
 ### Wiki Collection System
-- **ID Format**: SHA-256 hash of `pageId + revisionId`
-- **Purpose**: Ensures uniqueness per revision
-- **MongoDB Storage**: Used as `dataId` field for upsert operations
+- **ID Format**: pageId 그대로 사용
+- **Purpose**: 같은 페이지의 최신 리비전만 유지
+- **MongoDB Storage**: `dataId` 필드로 upsert (timestamp 비교하여 최신만 저장)
+- **Kafka Key**: `dataId`를 Key로 사용 → 같은 페이지는 같은 파티션 → 순서 보장
 
 ### Implementation Guidelines
-- Use appropriate fields as hash input for consistency
-- Apply UTF-8 encoding before hashing
-- Store as hexadecimal string in MongoDB
-- Same article republished with different timestamp gets new ID (captures updates)
+- SHA-256 해시 불필요 (URL/pageId 자체가 고유 식별자)
+- 디버깅/로깅 시 dataId로 원본 URL 즉시 확인 가능
+- upsert 시 pubDate/timestamp 비교하여 구버전 덮어쓰기 방지
+- 같은 dataId는 같은 Kafka 파티션으로 전송되어 처리 순서 보장
 
 ## Development Guidelines
 
@@ -361,7 +364,7 @@ Kafka 메시지는 **메타데이터만** 전송하고, 실제 데이터는 Mong
 **CollectionPayload** (collection-to-cleaning):
 ```java
 {
-  dataId: String              // SHA-256 hash
+  dataId: String              // URL(RSS) 또는 pageId(Wiki)
   source: String              // "rss", "wiki"
   mongoCollectionName: String // "rss_raw_data", "wiki_raw_data"
   priority: String            // "NORMAL", "HIGH", etc.
@@ -372,7 +375,7 @@ Kafka 메시지는 **메타데이터만** 전송하고, 실제 데이터는 Mong
 **CleaningPayload** (cleaning-to-indexing):
 ```java
 {
-  dataId: String              // SHA-256 hash
+  dataId: String              // URL(RSS) 또는 pageId(Wiki)
   source: String              // "rss", "wiki"
   mongoCollectionName: String // "cleaned_data"
   priority: String            // "NORMAL", "HIGH", etc.

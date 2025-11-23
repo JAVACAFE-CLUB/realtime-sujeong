@@ -137,7 +137,7 @@ sequenceDiagram
   "timestamp": "2025-10-28T10:00:00",
   "eventType": "DATA_COLLECTED",
   "payload": {
-    "dataId": "abc123def456...",
+    "dataId": "https://www.chosun.com/..."  // URL 그대로,
     "source": "rss",
     "mongoCollectionName": "rss_raw_data",
     "priority": "NORMAL",
@@ -161,7 +161,7 @@ sequenceDiagram
   "timestamp": "2025-10-28T10:00:00",
   "eventType": "DATA_COLLECTED",
   "payload": {
-    "dataId": "def789ghi012...",
+    "dataId": "12345"  // pageId 그대로,
     "source": "wiki",
     "mongoCollectionName": "wiki_raw_data",
     "priority": "NORMAL",
@@ -185,7 +185,7 @@ sequenceDiagram
   "timestamp": "2025-10-28T10:05:00",
   "eventType": "DATA_CLEANED",
   "payload": {
-    "dataId": "abc123def456...",
+    "dataId": "https://www.chosun.com/..."  // URL 그대로,
     "source": "rss",
     "title": "뉴스 제목",
     "cleanedContent": "정제된 본문 텍스트...",
@@ -221,7 +221,7 @@ flowchart LR
 ## 🧮 중복 제거 전략
 
 **Collection System에서 이미 처리**:
-- Collection이 SHA-256 기반 `dataId`로 중복 제거
+- Collection이 URL(RSS) 또는 pageId(Wiki)를 `dataId`로 사용하여 중복 제거
 - MongoDB unique index로 보장
 - **Cleaning은 별도 중복 제거 불필요**
 
