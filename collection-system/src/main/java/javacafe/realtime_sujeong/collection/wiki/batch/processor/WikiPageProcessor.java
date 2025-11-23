@@ -60,11 +60,9 @@ public class WikiPageProcessor implements ItemProcessor<WikiPage, WikiRawData> {
                 return null;  // null 반환 시 해당 아이템 skip
             }
 
-            // 2. DataId 생성
+            // 2. DataId 생성 (pageId 그대로 사용)
             String pageId = wikiPage.getPageId();
-            String revisionId = wikiPage.getRevision() != null ?
-                    wikiPage.getRevision().getRevisionId() : "unknown";
-            String dataId = dataIdGenerator.generateWikiDataId(pageId, revisionId);
+            String dataId = dataIdGenerator.generateWikiDataId(pageId);
 
             // 3. WikiRawData 엔티티 생성
             WikiRawData wikiRawData = WikiRawData.builder()

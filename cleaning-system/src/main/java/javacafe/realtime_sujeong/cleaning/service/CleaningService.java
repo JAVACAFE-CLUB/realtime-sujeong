@@ -2,6 +2,7 @@ package javacafe.realtime_sujeong.cleaning.service;
 
 import javacafe.realtime_sujeong.cleaning.domain.CleanedData;
 import javacafe.realtime_sujeong.cleaning.domain.CleanedDataRepository;
+import javacafe.realtime_sujeong.cleaning.kafka.producer.CleaningProducer;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.RawDataFetcher;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.RawDataFetcherFactory;
 import javacafe.realtime_sujeong.cleaning.service.fetcher.dto.RawDataContent;
@@ -30,7 +31,7 @@ public class CleaningService {
     private final TextNormalizer textNormalizer;
     private final LanguageDetector languageDetector;
     private final CleanedDataRepository cleanedDataRepository;
-    private final javacafe.realtime_sujeong.cleaning.kafka.producer.CleaningProducer cleaningProducer;
+    private final CleaningProducer cleaningProducer;
 
     // 최소 컨텐츠 길이 (validation용)
     private static final int MIN_CONTENT_LENGTH = 10;
@@ -244,8 +245,8 @@ public class CleaningService {
     }
 
     /**
-     * 정제된 데이터를 MongoDB에 일괄 저장
-     * Upsert 방식으로 중복 처리 안전
+     * 정제된 데이터를 MongoDB에 일괄 저장 (upsert 방식)
+     * 기존 데이터가 있으면 업데이트, 없으면 새로 생성
      *
      * @param cleanedDataList 정제 데이터 리스트
      */
@@ -256,9 +257,38 @@ public class CleaningService {
         }
 
         try {
-            // MongoDB bulk insert (100회 저장 → 1회 저장)
-            List<CleanedData> savedList = cleanedDataRepository.saveAll(cleanedDataList);
-            log.info("Saved {} cleaned data to MongoDB", savedList.size());
+            // 1. 기존 데이터 조회 (upsert를 위해)
+            List<String> dataIds = cleanedDataList.stream()
+                    .map(CleanedData::getDataId)
+                    .toList();
+            
+            List<CleanedData> existingDataList = cleanedDataRepository.findAllByDataIdIn(dataIds);
+            Map<String, CleanedData> existingDataMap = existingDataList.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            CleanedData::getDataId, 
+                            java.util.function.Function.identity()
+                    ));
+
+            // 2. 기존 데이터의 id를 새 데이터에 복사 (update를 위해)
+            List<CleanedData> dataToSave = cleanedDataList.stream()
+                    .map(newData -> {
+                        CleanedData existing = existingDataMap.get(newData.getDataId());
+                        if (existing != null) {
+                            // 기존 데이터의 MongoDB _id를 복사하여 update 수행
+                            newData.setId(existing.getId());
+                            newData.setCreatedAt(existing.getCreatedAt());
+                            newData.setUpdatedAt(LocalDateTime.now());
+                        }
+                        return newData;
+                    })
+                    .toList();
+
+            // 3. MongoDB bulk upsert
+            List<CleanedData> savedList = cleanedDataRepository.saveAll(dataToSave);
+            log.info("Saved {} cleaned data to MongoDB (new: {}, updated: {})", 
+                    savedList.size(), 
+                    savedList.size() - existingDataMap.size(),
+                    existingDataMap.size());
 
         } catch (Exception e) {
             log.error("Error saving cleaned data batch, trying fallback", e);

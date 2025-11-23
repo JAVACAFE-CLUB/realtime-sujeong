@@ -11,9 +11,11 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -45,37 +47,63 @@ public class WikiDataWriter implements ItemWriter<WikiRawData> {
             @SuppressWarnings("unchecked")
             List<WikiRawData> wikiRawDataList = (List<WikiRawData>) items;
 
-            // 1. 청크 단위 중복 체크 (배치 조회)
+            // 1. 청크 단위로 기존 데이터 조회 (upsert를 위해)
             long dupCheckStartTime = System.currentTimeMillis();
             List<String> dataIds = wikiRawDataList.stream()
                     .map(WikiRawData::getDataId)
                     .toList();
 
-            List<WikiRawData> existingData = wikiRawDataRepository.findDataIdsByDataIdIn(dataIds);
-            Set<String> existingDataIds = existingData.stream()
-                    .map(WikiRawData::getDataId)
-                    .collect(Collectors.toSet());
+            List<WikiRawData> existingDataList = wikiRawDataRepository.findAllByDataIdIn(dataIds);
+            Map<String, WikiRawData> existingDataMap = existingDataList.stream()
+                    .collect(Collectors.toMap(WikiRawData::getDataId, Function.identity()));
 
-            // 중복 제거
-            List<WikiRawData> newDataList = wikiRawDataList.stream()
-                    .filter(data -> !existingDataIds.contains(data.getDataId()))
-                    .toList();
+            // 2. upsert 대상 분류 (신규 또는 더 최신인 데이터만)
+            List<WikiRawData> dataToSave = new ArrayList<>();
+            List<WikiRawData> dataToUpdate = new ArrayList<>();
+            int skippedCount = 0;
+
+            for (WikiRawData newData : wikiRawDataList) {
+                WikiRawData existing = existingDataMap.get(newData.getDataId());
+                if (existing == null) {
+                    // 신규 데이터
+                    dataToSave.add(newData);
+                } else {
+                    // 기존 데이터가 있음 - timestamp 비교
+                    var newTimestamp = newData.getWikiPage().getRevision().getTimestamp();
+                    if (existing.isOlderThan(newTimestamp)) {
+                        // 기존 데이터가 더 오래됨 → 업데이트
+                        existing.updateFromNewer(
+                                newData.getWikiPage(),
+                                newData.getTitle(),
+                                newData.getNamespace()
+                        );
+                        dataToUpdate.add(existing);
+                    } else {
+                        // 기존 데이터가 더 최신 → 스킵
+                        skippedCount++;
+                    }
+                }
+            }
 
             long dupCheckEndTime = System.currentTimeMillis();
-            log.info("중복 체크 완료: 전체={}, 중복={}, 신규={} (소요시간: {}ms)",
-                    wikiRawDataList.size(), existingDataIds.size(), newDataList.size(),
+            log.info("upsert 분류 완료: 전체={}, 신규={}, 업데이트={}, 스킵={} (소요시간: {}ms)",
+                    wikiRawDataList.size(), dataToSave.size(), dataToUpdate.size(), skippedCount,
                     (dupCheckEndTime - dupCheckStartTime));
 
-            if (newDataList.isEmpty()) {
-                log.info("모든 데이터가 중복입니다. 저장 및 Kafka 전송 스킵.");
+            List<WikiRawData> allDataToSave = new ArrayList<>();
+            allDataToSave.addAll(dataToSave);
+            allDataToSave.addAll(dataToUpdate);
+
+            if (allDataToSave.isEmpty()) {
+                log.info("저장할 데이터가 없습니다. 모든 데이터가 최신 상태입니다.");
                 long totalTime = System.currentTimeMillis() - startTime;
                 log.info("=== Writer 총 소요시간: {}ms ===", totalTime);
                 return;
             }
 
-            // 2. MongoDB Bulk Insert (신규 데이터만)
+            // 3. MongoDB Bulk Upsert (신규 + 업데이트)c
             long mongoStartTime = System.currentTimeMillis();
-            List<WikiRawData> savedItems = wikiRawDataRepository.saveAll(newDataList);
+            List<WikiRawData> savedItems = wikiRawDataRepository.saveAll(allDataToSave);
             long mongoEndTime = System.currentTimeMillis();
             log.info("MongoDB Bulk Insert 완료: {} 개 저장 (소요시간: {}ms)",
                 savedItems.size(), (mongoEndTime - mongoStartTime));

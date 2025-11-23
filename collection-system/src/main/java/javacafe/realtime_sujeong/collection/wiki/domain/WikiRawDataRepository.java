@@ -31,6 +31,12 @@ public interface WikiRawDataRepository extends MongoRepository<WikiRawData, Stri
     List<WikiRawData> findDataIdsByDataIdIn(List<String> dataIds);
 
     /**
+     * 여러 dataId를 한 번에 조회하여 전체 데이터 반환
+     * upsert 처리 시 timestamp 비교를 위해 사용
+     */
+    List<WikiRawData> findAllByDataIdIn(List<String> dataIds);
+
+    /**
      * 특정 네임스페이스의 데이터 조회
      */
     List<WikiRawData> findByNamespace(String namespace);

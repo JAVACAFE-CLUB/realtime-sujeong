@@ -63,4 +63,12 @@ public interface CleanedDataRepository extends MongoRepository<CleanedData, Stri
      * @return 정제 데이터 목록
      */
     List<CleanedData> findBySourceAndLanguage(String source, String language);
+
+    /**
+     * 여러 dataId로 정제 데이터 일괄 조회 (upsert용)
+     *
+     * @param dataIds dataId 목록
+     * @return 정제 데이터 목록
+     */
+    List<CleanedData> findAllByDataIdIn(List<String> dataIds);
 }

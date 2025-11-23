@@ -29,8 +29,10 @@ public class CleanedData {
     private String id;
 
     /**
-     * 데이터 고유 식별자 (SHA-256 해시)
-     * raw_data의 dataId와 동일
+     * 데이터 고유 식별자 (URL 또는 pageId 그대로)
+     * - RSS: URL 그대로
+     * - Wiki: pageId 그대로
+     * - raw_data의 dataId와 동일
      */
     @Indexed(unique = true)
     private String dataId;
