@@ -1,0 +1,20 @@
+# gRPC and Protocol Buffers
+grpcio==1.60.0
+grpcio-tools==1.60.0
+protobuf==4.25.1
+
+# Machine Learning
+torch==2.1.2
+transformers==4.36.2
+
+# Utilities
+numpy==1.26.3
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.23.3
+black==23.12.1
+mypy==1.8.0
+
+# Logging
+python-dotenv==1.0.0
