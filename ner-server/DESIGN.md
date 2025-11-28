@@ -921,15 +921,18 @@ spec:
 - [x] requirements.txt 작성
 - [x] app/config.py 구현
 
-### Phase 2: Protocol Buffers 정의 (gRPC 인터페이스)
-- [ ] protos/ner.proto 작성
-  - [ ] NerRequest 메시지
-  - [ ] NerResponse 메시지
-  - [ ] NerBatchRequest 메시지
-  - [ ] NerBatchResponse 메시지
-  - [ ] NerEntity 메시지
-  - [ ] NerService 서비스 정의
-- [ ] Protocol Buffers 컴파일 (Python 코드 생성)
+### Phase 2: Protocol Buffers 정의 (gRPC 인터페이스) ✅
+- [x] protos/ner.proto 작성
+  - [x] NerService 정의 (ExtractEntities, ExtractEntitiesBatch)
+  - [x] NerRequest 메시지
+  - [x] NerResponse 메시지
+  - [x] NerEntity 메시지
+  - [x] NerBatchRequest 메시지
+  - [x] NerBatchResponse 메시지
+  - [x] NerBatchResult 메시지
+- [x] compile_protos.sh 스크립트 생성
+- [x] app/generated/ 디렉토리 생성
+- [x] README.md 업데이트 (컴파일 가이드 추가)
 
 ### Phase 3: NER 모델
 - [ ] app/models/ner_model.py
