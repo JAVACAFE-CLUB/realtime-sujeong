@@ -1,0 +1,77 @@
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "tokenizer": {
+        "nori_tokenizer": {
+          "type": "nori_tokenizer",
+          "decompound_mode": "mixed",
+          "discard_punctuation": true
+        }
+      },
+      "filter": {
+        "nori_pos_filter": {
+          "type": "nori_part_of_speech",
+          "stoptags": [
+            "E", "IC", "J", "MAG", "MAJ", "MM",
+            "SC", "SE", "SF", "SP", "SSC", "SSO",
+            "SY", "UNA", "VCN", "VCP", "VSV", "VV", "VX", "XPN", "XSA", "XSN", "XSV"
+          ]
+        }
+      },
+      "analyzer": {
+        "korean_noun_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer",
+          "filter": ["nori_pos_filter", "lowercase", "nori_readingform"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "keywordId": {
+        "type": "keyword",
+        "doc_values": true
+      },
+      "keyword": {
+        "type": "text",
+        "analyzer": "korean_noun_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "entityType": {
+        "type": "keyword",
+        "doc_values": true
+      },
+      "score": {
+        "type": "double"
+      },
+      "frequency": {
+        "type": "integer"
+      },
+      "date": {
+        "type": "date",
+        "format": "yyyy-MM-dd"
+      },
+      "sourceDataIds": {
+        "type": "keyword"
+      },
+      "sources": {
+        "type": "keyword"
+      },
+      "createdAt": {
+        "type": "date",
+        "format": "strict_date_time"
+      },
+      "lastUpdated": {
+        "type": "date",
+        "format": "strict_date_time"
+      }
+    }
+  }
+}

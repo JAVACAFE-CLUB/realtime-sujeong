@@ -737,10 +737,12 @@ ner-server/
 - [x] NerGrpcClient 구현 (gRPC 통신)
 - [x] NerService 구현 (비즈니스 로직 래퍼)
 
-### Phase 4: Elasticsearch 설정
-- [ ] ElasticsearchConfig 구현
-- [ ] 인덱스 매핑 JSON 작성 (개체 유형 필드 포함)
-- [ ] 인덱스 초기화 로직
+### Phase 4: Elasticsearch 설정 ✅
+- [x] ElasticsearchConfig 구현 (ClientConfiguration 기반)
+- [x] 인덱스 매핑 JSON 작성 (개체 유형 필드 포함, Nori 분석기 설정)
+- [x] ElasticsearchInitializer 구현 (인덱스 자동 생성)
+- [x] application.properties Elasticsearch 설정 추가
+- [x] application-dev.properties Elasticsearch 설정 추가
 
 ### Phase 5: 도메인 레이어
 - [ ] Keyword 도메인 모델
