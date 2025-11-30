@@ -751,9 +751,12 @@ ner-server/
 - [x] KeywordDocument DTO (ES 문서 조회/색인용)
 - [x] KeywordScoreDto (API 응답용)
 
-### Phase 6: 서비스 레이어
-- [ ] KeywordScoreCalculator (점수 계산)
-- [ ] KeywordIndexingService (색인)
+### Phase 6: 서비스 레이어 ✅
+- [x] KeywordScoreCalculator (점수 계산 로직, 가중치 적용)
+- [x] KeywordIndexingService (색인 서비스, Upsert 로직)
+- [x] 제목/본문 빈도수 분리 계산
+- [x] 개체 유형별 가중치 적용 (ORG: 1.5, PER: 1.3, AF: 1.2, LOC: 1.0)
+- [x] 배치 처리 지원
 
 ### Phase 7: Kafka 연동
 - [ ] CleaningPayload DTO

@@ -27,17 +27,6 @@ protobuf {
             grpc {}
         }
     }
-    generatedFilesBaseDir = "$projectDir/src/generated"
-}
-
-// Generated source 디렉토리를 소스셋에 추가
-sourceSets {
-    main {
-        java {
-            srcDirs 'src/generated/main/grpc'
-            srcDirs 'src/generated/main/java'
-        }
-    }
 }
 
 // Clean 시 generated 파일도 삭제
@@ -74,4 +63,6 @@ dependencies {
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 }

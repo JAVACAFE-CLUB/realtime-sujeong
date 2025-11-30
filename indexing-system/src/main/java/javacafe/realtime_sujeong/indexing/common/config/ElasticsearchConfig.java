@@ -38,9 +38,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
     @Override
     public ClientConfiguration clientConfiguration() {
         ClientConfiguration.MaybeSecureClientConfigurationBuilder builder = ClientConfiguration.builder()
-                .connectedTo(host + ":" + port)
-                .withConnectTimeout(connectionTimeout)
-                .withSocketTimeout(socketTimeout);
+                .connectedTo(host + ":" + port);
 
         // 인증 정보가 있는 경우 추가
         if (username != null && password != null) {
@@ -50,6 +48,9 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
             log.info("Elasticsearch configured without authentication: {}:{}", host, port);
         }
 
-        return builder.build();
+        return builder
+                .withConnectTimeout(connectionTimeout)
+                .withSocketTimeout(socketTimeout)
+                .build();
     }
 }
