@@ -132,11 +132,11 @@ message NerEntity {
 
 ## 개발 상태
 
-- [x] Phase 1: 기본 구조 및 의존성 (requirements.txt, config.py)
+- [x] Phase 1: 기본 구조 및 의존성 (requirements.txt, config.py) ✅
 - [x] Phase 2: Protocol Buffers 정의 (protos/ner.proto) ✅
-- [ ] Phase 3: NER 모델 레이어 (models/ner_model.py)
-- [ ] Phase 4: gRPC 서비스 레이어 (services/ner_servicer.py)
-- [ ] Phase 5: gRPC 서버 (app/server.py)
+- [x] Phase 3: NER 모델 레이어 (models/ner_model.py) ✅
+- [x] Phase 4: gRPC 서비스 레이어 (services/ner_servicer.py) ✅
+- [x] Phase 5: gRPC 서버 (app/server.py) ✅
 - [ ] Phase 6: 테스트 코드
 - [ ] Phase 7: Docker 설정
 

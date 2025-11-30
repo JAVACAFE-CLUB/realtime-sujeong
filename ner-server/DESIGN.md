@@ -934,28 +934,36 @@ spec:
 - [x] app/generated/ 디렉토리 생성
 - [x] README.md 업데이트 (컴파일 가이드 추가)
 
-### Phase 3: NER 모델
-- [ ] app/models/ner_model.py
-  - [ ] NerModel 클래스 (Singleton)
-  - [ ] 모델 로딩 로직
-  - [ ] predict() 메서드
-  - [ ] BIO 태그 디코딩
+### Phase 3: NER 모델 ✅
+- [x] app/models/ner_model.py
+  - [x] NerModel 클래스 (Singleton 패턴)
+  - [x] 모델 로딩 로직 (_load_model)
+  - [x] predict() 메서드 (단일 텍스트)
+  - [x] predict_batch() 메서드 (배치 처리)
+  - [x] BIO 태그 디코딩 (HuggingFace pipeline aggregation_strategy)
+  - [x] 신뢰도 필터링
+  - [x] 에러 처리 및 로깅
+- [x] app/models/__init__.py
+- [x] test_model.py (모델 테스트 스크립트)
 
-### Phase 4: gRPC 서비스 레이어
-- [ ] app/services/ner_servicer.py
-  - [ ] NerServicer 클래스 (ner_pb2_grpc.NerServiceServicer 상속)
-  - [ ] ExtractEntities() RPC 메서드 구현
-  - [ ] ExtractEntitiesBatch() RPC 메서드 구현
-  - [ ] gRPC 입력 검증 (context.set_code)
-  - [ ] gRPC 에러 처리
+### Phase 4: gRPC 서비스 레이어 ✅
+- [x] app/services/ner_servicer.py
+  - [x] NerServicer 클래스 (ner_pb2_grpc.NerServiceServicer 상속)
+  - [x] ExtractEntities() RPC 메서드 구현
+  - [x] ExtractEntitiesBatch() RPC 메서드 구현
+  - [x] gRPC 입력 검증 (context.set_code)
+  - [x] gRPC 에러 처리
+- [x] app/services/__init__.py
 
-### Phase 5: gRPC 서버 레이어
-- [ ] app/server.py
-  - [ ] gRPC 서버 생성 및 설정
-  - [ ] ThreadPoolExecutor 설정 (max_workers)
-  - [ ] NerServicer 등록
-  - [ ] 서버 시작/종료 로직
-  - [ ] Graceful shutdown 구현
+### Phase 5: gRPC 서버 레이어 ✅
+- [x] app/server.py
+  - [x] gRPC 서버 생성 및 설정
+  - [x] ThreadPoolExecutor 설정 (max_workers)
+  - [x] NerServicer 등록
+  - [x] 서버 시작/종료 로직
+  - [x] Graceful shutdown 구현
+  - [x] 시그널 핸들러 (SIGINT, SIGTERM)
+  - [x] 메시지 크기 제한 설정 (50MB)
 
 ### Phase 6: 테스트
 - [ ] tests/test_ner_model.py
