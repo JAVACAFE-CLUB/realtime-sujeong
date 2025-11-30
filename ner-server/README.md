@@ -64,10 +64,32 @@ python -m grpc_tools.protoc \
 - `app/generated/ner_pb2.py` - Protocol Buffers 메시지 정의
 - `app/generated/ner_pb2_grpc.py` - gRPC 서비스 스텁
 
-### 4. 서버 실행 (Phase 5 이후)
+### 4. 서버 실행
 
+#### Python 직접 실행
 ```bash
 python -m app.server
+```
+
+#### Docker 실행
+```bash
+# 이미지 빌드
+docker build -t ner-server .
+
+# 컨테이너 실행
+docker run -p 50051:50051 ner-server
+```
+
+#### Docker Compose 실행 (권장)
+```bash
+# 프로젝트 루트에서
+docker-compose up -d ner-server
+
+# 로그 확인
+docker-compose logs -f ner-server
+
+# 헬스 체크
+docker-compose ps ner-server
 ```
 
 서버는 기본적으로 `0.0.0.0:50051`에서 실행됩니다.
@@ -138,7 +160,7 @@ message NerEntity {
 - [x] Phase 4: gRPC 서비스 레이어 (services/ner_servicer.py) ✅
 - [x] Phase 5: gRPC 서버 (app/server.py) ✅
 - [x] Phase 6: 테스트 코드 (pytest) ✅
-- [ ] Phase 7: Docker 설정
+- [x] Phase 7: Docker 설정 ✅
 
 ## Entity Tags (KLUE 표준)
 

@@ -982,13 +982,21 @@ spec:
 - [x] tests/conftest.py (공통 fixture)
 - [x] pytest.ini (pytest 설정)
 
-### Phase 7: Docker 및 배포
-- [ ] Dockerfile 작성 (gRPC 서버용)
-- [ ] docker-compose.yml 업데이트 (50051 포트)
-- [ ] Protocol Buffers 자동 컴파일 설정
-- [ ] grpc_health_probe 헬스 체크
-- [ ] 빌드 및 테스트
-- [ ] 성능 측정
+### Phase 7: Docker 및 배포 ✅
+- [x] Dockerfile 작성 (gRPC 서버용)
+  - [x] Python 3.10-slim 베이스 이미지
+  - [x] 의존성 설치
+  - [x] Protocol Buffers 자동 컴파일
+  - [x] grpc_health_probe 설치
+  - [x] 헬스 체크 설정
+  - [x] 환경 변수 기본값 설정
+- [x] docker-compose.yml 업데이트 (50051 포트)
+  - [x] ner-server 서비스 추가
+  - [x] 모델 캐시 볼륨 설정
+  - [x] 헬스 체크 설정 (60초 시작 대기)
+  - [x] 환경 변수 설정
+- [x] .dockerignore 업데이트
+- [x] README.md 업데이트 (Docker 실행 방법)
 
 ### Phase 8: 문서화
 - [ ] gRPC 서비스 문서 (protos/ner.proto 주석)
