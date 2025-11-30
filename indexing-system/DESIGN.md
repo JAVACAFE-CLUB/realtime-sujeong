@@ -744,10 +744,12 @@ ner-server/
 - [x] application.properties Elasticsearch 설정 추가
 - [x] application-dev.properties Elasticsearch 설정 추가
 
-### Phase 5: 도메인 레이어
-- [ ] Keyword 도메인 모델
-- [ ] NamedEntity VO
-- [ ] KeywordRepository (ES Repository)
+### Phase 5: 도메인 레이어 ✅
+- [x] Keyword 도메인 모델 (@Document, Elasticsearch 매핑)
+- [x] KeywordScore VO (점수 계산 결과)
+- [x] KeywordRepository (ElasticsearchRepository 확장)
+- [x] KeywordDocument DTO (ES 문서 조회/색인용)
+- [x] KeywordScoreDto (API 응답용)
 
 ### Phase 6: 서비스 레이어
 - [ ] KeywordScoreCalculator (점수 계산)
