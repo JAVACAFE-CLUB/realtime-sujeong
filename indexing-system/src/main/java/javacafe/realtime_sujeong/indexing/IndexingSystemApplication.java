@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Indexing System Application
@@ -17,6 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableKafka
 @EnableAsync
+@EnableScheduling
 @EnableElasticsearchRepositories(basePackages = "javacafe.realtime_sujeong.indexing.keyword.domain")
 public class IndexingSystemApplication {
 

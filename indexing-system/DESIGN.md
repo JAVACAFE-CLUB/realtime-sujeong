@@ -767,9 +767,15 @@ ner-server/
 - [x] cleaning-to-indexing 토픽 소비
 - [x] MongoDB 조회 → NER → Elasticsearch 색인 파이프라인
 
-### Phase 8: Redis 캐시
-- [ ] RedisConfig
-- [ ] KeywordCacheService
+### Phase 8: Redis 캐시 ✅
+- [x] RedisConfig (Lettuce 연결, JSON 직렬화)
+- [x] CachedTopKeywords DTO (캐시 데이터 구조)
+- [x] KeywordCacheService (캐시 관리 서비스)
+- [x] Top 10 키워드 캐시 (TTL: 25시간)
+- [x] 개별 키워드 점수 캐시
+- [x] 캐시 갱신 스케줄링 (매일 자정, 매 시간 정각)
+- [x] Cache-Aside 패턴 (Lazy Loading)
+- [x] @EnableScheduling 활성화
 
 ### Phase 9: 테스트 및 검증
 - [ ] NER 서버 테스트
