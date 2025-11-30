@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package ner;
+
+// NER 서비스 정의
+service NerService {
+  // 단일 텍스트 개체명 추출
+  rpc ExtractEntities(NerRequest) returns (NerResponse);
+
+  // 배치 텍스트 개체명 추출 (대용량 처리)
+  rpc ExtractEntitiesBatch(NerBatchRequest) returns (NerBatchResponse);
+}
+
+// 단일 NER 요청
+message NerRequest {
+  string text = 1;                    // 분석할 텍스트
+  float confidence_threshold = 2;     // 신뢰도 임계값 (0.0 ~ 1.0, 기본값: 0.8)
+}
+
+// 단일 NER 응답
+message NerResponse {
+  repeated NerEntity entities = 1;    // 추출된 개체명 리스트
+  int32 processing_time_ms = 2;       // 처리 시간 (밀리초)
+}
+
+// 개체명 엔티티
+message NerEntity {
+  string word = 1;                    // 개체명 (예: "삼성전자")
+  string entity = 2;                  // 개체 유형 (PER, ORG, LOC, DAT, TIM, etc.)
+  float confidence = 3;               // 신뢰도 (0.0 ~ 1.0)
+  int32 start = 4;                    // 시작 위치 (문자 인덱스)
+  int32 end = 5;                      // 종료 위치 (문자 인덱스)
+}
+
+// 배치 NER 요청
+message NerBatchRequest {
+  repeated string texts = 1;          // 분석할 텍스트 리스트 (최대 100개)
+  float confidence_threshold = 2;     // 신뢰도 임계값 (0.0 ~ 1.0, 기본값: 0.8)
+}
+
+// 배치 NER 응답
+message NerBatchResponse {
+  repeated NerBatchResult results = 1;  // 각 텍스트별 결과
+  int32 total_texts = 2;                // 전체 텍스트 개수
+  int32 processing_time_ms = 3;         // 총 처리 시간 (밀리초)
+}
+
+// 배치 처리 개별 결과
+message NerBatchResult {
+  string text = 1;                      // 원본 텍스트
+  repeated NerEntity entities = 2;      // 추출된 개체명 리스트
+}

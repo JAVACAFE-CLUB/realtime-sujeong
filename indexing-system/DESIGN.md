@@ -729,11 +729,13 @@ ner-server/
 - [x] application.properties 설정 (환경변수 지원)
 - [x] application-dev.properties 설정 (개발 서버 MongoDB 주소)
 
-### Phase 3: NER 클라이언트
-- [ ] Protocol Buffers 컴파일 (Java)
-- [ ] NerClient 구현 (gRPC 클라이언트)
-- [ ] NerService 구현 (클라이언트 래퍼)
-- [ ] NER 요청/응답 DTO (Protobuf 생성)
+### Phase 3: NER 클라이언트 ✅
+- [x] build.gradle에 protobuf 플러그인 추가
+- [x] ner.proto 파일 위치 설정 (src/main/proto)
+- [x] NerClientConfig 구현 (gRPC ManagedChannel 설정)
+- [x] NamedEntity, NerResult DTO 구현
+- [x] NerGrpcClient 구현 (gRPC 통신)
+- [x] NerService 구현 (비즈니스 로직 래퍼)
 
 ### Phase 4: Elasticsearch 설정
 - [ ] ElasticsearchConfig 구현
