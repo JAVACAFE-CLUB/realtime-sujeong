@@ -1,10 +1,48 @@
-// 아직 구현되지 않은 모듈 - bootJar 비활성화
+// Protobuf 플러그인
+plugins {
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+// Indexing System 모듈 - 활성화
 bootJar {
-    enabled = false
+    enabled = true
 }
 
 jar {
-    enabled = true
+    enabled = false
+}
+
+// Protobuf 설정
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.1'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.60.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+    generatedFilesBaseDir = "$projectDir/src/generated"
+}
+
+// Generated source 디렉토리를 소스셋에 추가
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/generated/main/grpc'
+            srcDirs 'src/generated/main/java'
+        }
+    }
+}
+
+// Clean 시 generated 파일도 삭제
+clean {
+    delete protobuf.generatedFilesBaseDir
 }
 
 dependencies {
@@ -14,7 +52,26 @@ dependencies {
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 
     // Spring Kafka
     implementation 'org.springframework.kafka:spring-kafka'
+
+    // gRPC dependencies
+    implementation 'io.grpc:grpc-netty-shaded:1.60.0'
+    implementation 'io.grpc:grpc-protobuf:1.60.0'
+    implementation 'io.grpc:grpc-stub:1.60.0'
+    implementation 'com.google.protobuf:protobuf-java:3.25.1'
+
+    // gRPC annotation (for Java 9+)
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 }

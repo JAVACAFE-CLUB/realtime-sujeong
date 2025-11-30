@@ -712,22 +712,28 @@ ner-server/
 
 ## 10. 구현 계획
 
-### Phase 1: NER 서버 구축 (Python)
-- [ ] FastAPI 서버 구현 (`ner_server.py`)
-- [ ] KLUE-RoBERTa NER 모델 통합
-- [ ] 배치 처리 엔드포인트 구현
-- [ ] Docker 이미지 빌드
-- [ ] docker-compose 설정
+### Phase 1: NER 서버 구축 (Python) ✅
+- [x] Protocol Buffers 정의 (`protos/ner.proto`)
+- [x] gRPC 서버 구현 (`app/server.py`)
+- [x] NER 모델 레이어 (`app/models/ner_model.py`)
+- [x] gRPC 서비스 레이어 (`app/services/ner_servicer.py`)
+- [x] 단일/배치 처리 엔드포인트 (ExtractEntities, ExtractEntitiesBatch)
+- [x] 테스트 코드 작성 (pytest)
+- [x] Docker 이미지 빌드 (Dockerfile)
+- [x] docker-compose 설정 (ner-server 서비스)
 
-### Phase 2: 기본 구조 설정 (Java)
-- [ ] 디렉토리 구조 생성
-- [ ] build.gradle 의존성 추가
-- [ ] application.properties 설정
+### Phase 2: 기본 구조 설정 (Java) ✅
+- [x] 디렉토리 구조 생성 (DDD 패턴)
+- [x] build.gradle 의존성 추가 (gRPC, Elasticsearch, Redis, Kafka, MongoDB)
+- [x] IndexingSystemApplication.java 메인 클래스 생성
+- [x] application.properties 설정 (환경변수 지원)
+- [x] application-dev.properties 설정 (개발 서버 MongoDB 주소)
 
 ### Phase 3: NER 클라이언트
-- [ ] NerClient 구현 (HTTP 호출)
-- [ ] NerService 구현
-- [ ] NER 요청/응답 DTO
+- [ ] Protocol Buffers 컴파일 (Java)
+- [ ] NerClient 구현 (gRPC 클라이언트)
+- [ ] NerService 구현 (클라이언트 래퍼)
+- [ ] NER 요청/응답 DTO (Protobuf 생성)
 
 ### Phase 4: Elasticsearch 설정
 - [ ] ElasticsearchConfig 구현
@@ -816,3 +822,4 @@ redis:
 | 1.0 | 2025-11-23 | Claude | 최초 작성 |
 | 1.1 | 2025-11-24 | Claude | NER 섹션 추가, 형태소 분석 → NER 기반으로 변경 |
 | 1.2 | 2025-11-24 | Claude | NER 모델 `koorukuroo/korean_bert_ner` 선정 (F1 88.43%), gRPC 통신 방식 적용 |
+| 1.3 | 2025-11-30 | Claude | Phase 1 (NER 서버) 완료, gRPC 기반 구현 |
