@@ -965,17 +965,22 @@ spec:
   - [x] 시그널 핸들러 (SIGINT, SIGTERM)
   - [x] 메시지 크기 제한 설정 (50MB)
 
-### Phase 6: 테스트
-- [ ] tests/test_ner_model.py
-  - [ ] NerModel Singleton 테스트
-  - [ ] 모델 로딩 테스트
-  - [ ] predict() 메서드 테스트
-  - [ ] BIO 태그 디코딩 테스트
-- [ ] tests/test_ner_servicer.py
-  - [ ] ExtractEntities() gRPC 호출 테스트
-  - [ ] ExtractEntitiesBatch() gRPC 호출 테스트
-  - [ ] 입력 검증 테스트
-  - [ ] gRPC 에러 처리 테스트
+### Phase 6: 테스트 ✅
+- [x] tests/test_ner_model.py
+  - [x] NerModel Singleton 테스트
+  - [x] 모델 로딩 테스트
+  - [x] predict() 메서드 테스트 (단일/배치)
+  - [x] BIO 태그 디코딩 테스트
+  - [x] 에러 처리 테스트
+  - [x] 신뢰도 필터링 테스트
+- [x] tests/test_ner_servicer.py
+  - [x] ExtractEntities() gRPC 호출 테스트
+  - [x] ExtractEntitiesBatch() gRPC 호출 테스트
+  - [x] 입력 검증 테스트 (빈 텍스트, 길이 초과, 임계값 오류)
+  - [x] gRPC 에러 처리 테스트
+  - [x] 배치 처리 일관성 테스트
+- [x] tests/conftest.py (공통 fixture)
+- [x] pytest.ini (pytest 설정)
 
 ### Phase 7: Docker 및 배포
 - [ ] Dockerfile 작성 (gRPC 서버용)
