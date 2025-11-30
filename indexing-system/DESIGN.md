@@ -758,10 +758,14 @@ ner-server/
 - [x] 개체 유형별 가중치 적용 (ORG: 1.5, PER: 1.3, AF: 1.2, LOC: 1.0)
 - [x] 배치 처리 지원
 
-### Phase 7: Kafka 연동
-- [ ] CleaningPayload DTO
-- [ ] CleaningDataConsumer
-- [ ] 배치 처리 로직
+### Phase 7: Kafka 연동 ✅
+- [x] CleanedData 도메인 모델 (MongoDB cleaned_data 컬렉션)
+- [x] CleanedDataRepository (MongoDB Repository)
+- [x] CleaningDataConsumer (Kafka 컨슈머, 배치 처리)
+- [x] KafkaConsumerConfig (배치 리스너, 수동 커밋)
+- [x] MongoConfig (Repository 활성화)
+- [x] cleaning-to-indexing 토픽 소비
+- [x] MongoDB 조회 → NER → Elasticsearch 색인 파이프라인
 
 ### Phase 8: Redis 캐시
 - [ ] RedisConfig
