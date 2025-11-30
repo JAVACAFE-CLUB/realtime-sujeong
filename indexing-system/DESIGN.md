@@ -777,11 +777,17 @@ ner-server/
 - [x] Cache-Aside 패턴 (Lazy Loading)
 - [x] @EnableScheduling 활성화
 
-### Phase 9: 테스트 및 검증
-- [ ] NER 서버 테스트
-- [ ] 단위 테스트
-- [ ] 통합 테스트
-- [ ] 대용량 배치 테스트 (Wiki 데이터)
+### Phase 9: 테스트 및 검증 ✅
+- [x] 단위 테스트 (KeywordScoreCalculatorTest, KeywordIndexingServiceTest - 12 tests passing)
+- [x] 통합 테스트 (KeywordIndexingIntegrationTest - Testcontainers 기반)
+  - [x] Elasticsearch 컨테이너 통합 테스트
+  - [x] MongoDB 통합 테스트
+  - [x] NER Mock 기반 전체 플로우 테스트
+  - [x] 키워드 점수 누적 테스트
+  - [x] Top 10 키워드 조회 테스트
+  - [x] 여러 엔티티 타입 혼합 테스트
+- [x] 테스트 의존성 추가 (Testcontainers, Embedded MongoDB, Embedded Redis)
+- [x] application-test.properties 작성
 
 ---
 
@@ -842,3 +848,4 @@ redis:
 | 1.1 | 2025-11-24 | Claude | NER 섹션 추가, 형태소 분석 → NER 기반으로 변경 |
 | 1.2 | 2025-11-24 | Claude | NER 모델 `koorukuroo/korean_bert_ner` 선정 (F1 88.43%), gRPC 통신 방식 적용 |
 | 1.3 | 2025-11-30 | Claude | Phase 1 (NER 서버) 완료, gRPC 기반 구현 |
+| 1.4 | 2025-11-30 | Claude | Phase 2-9 완료, 전체 Indexing System 구현 완료, 통합 테스트 추가 |

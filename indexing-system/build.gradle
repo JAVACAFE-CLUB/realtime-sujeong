@@ -63,6 +63,10 @@ dependencies {
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo:4.11.0' // Embedded MongoDB
+    testImplementation 'com.redis.testcontainers:testcontainers-redis-junit:1.6.4' // Embedded Redis
+    testImplementation 'org.testcontainers:elasticsearch:1.19.3' // Testcontainers for Elasticsearch
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
