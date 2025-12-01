@@ -1,5 +1,8 @@
 package javacafe.realtime_sujeong.indexing.common.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import javacafe.realtime_sujeong.common.kafka.dto.CleaningPayload;
 import javacafe.realtime_sujeong.common.kafka.dto.KafkaMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -65,19 +68,19 @@ public class KafkaConsumerConfig {
         // Manual commit
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
-        // Deserializers
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-
-        // JSON Deserializer 설정
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, KafkaMessage.class.getName());
-        config.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-
         log.info("Kafka Consumer configured: bootstrapServers={}, groupId={}, maxPollRecords={}",
                 bootstrapServers, groupId, maxPollRecords);
 
-        return new DefaultKafkaConsumerFactory<>(config);
+        // ObjectMapper에 JavaTimeModule 추가 (LocalDateTime 지원)
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+
+        // TypeReference를 사용하여 중첩된 Generic 타입 정보 보존
+        return new DefaultKafkaConsumerFactory<>(
+                config,
+                new StringDeserializer(),
+                new JsonDeserializer<>(new TypeReference<KafkaMessage<CleaningPayload>>() {}, objectMapper, false)
+        );
     }
 
     /**

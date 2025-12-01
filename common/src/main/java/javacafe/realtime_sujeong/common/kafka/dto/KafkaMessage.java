@@ -1,5 +1,6 @@
 package javacafe.realtime_sujeong.common.kafka.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,6 +33,7 @@ public class KafkaMessage<T> {
     /**
      * 메시지 생성 타임스탬프
      */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime timestamp;
 
     /**

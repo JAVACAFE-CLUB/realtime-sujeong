@@ -32,6 +32,9 @@ RUN python -m grpc_tools.protoc \
 # __init__.py 파일 생성 (generated 패키지)
 RUN touch app/generated/__init__.py
 
+# gRPC 생성 파일에서 import 경로 수정 (절대 경로 -> 상대 경로)
+RUN sed -i 's/import ner_pb2/from . import ner_pb2/g' app/generated/ner_pb2_grpc.py
+
 # 애플리케이션 코드 복사
 COPY ./app ./app
 COPY .env.example .env

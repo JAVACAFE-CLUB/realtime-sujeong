@@ -19,7 +19,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableKafka
 @EnableAsync
 @EnableScheduling
-@EnableElasticsearchRepositories(basePackages = "javacafe.realtime_sujeong.indexing.keyword.domain")
 public class IndexingSystemApplication {
 
     public static void main(String[] args) {

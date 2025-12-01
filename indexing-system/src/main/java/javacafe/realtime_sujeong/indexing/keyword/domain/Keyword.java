@@ -10,8 +10,8 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +39,7 @@ public class Keyword {
     /**
      * 키워드 (예: "삼성전자")
      */
-    @Field(type = FieldType.Text, analyzer = "korean_noun_analyzer")
+    @Field(type = FieldType.Text, analyzer = "standard")
     private String keyword;
 
     /**
@@ -84,13 +84,13 @@ public class Keyword {
      * 생성 시각
      */
     @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /**
      * 마지막 업데이트 시각
      */
     @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private LocalDateTime lastUpdated;
+    private Instant lastUpdated;
 
     /**
      * keywordId 생성
@@ -157,6 +157,6 @@ public class Keyword {
      * 마지막 업데이트 시각 갱신
      */
     public void updateLastUpdated() {
-        this.lastUpdated = LocalDateTime.now();
+        this.lastUpdated = Instant.now();
     }
 }

@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -102,8 +102,8 @@ public class KeywordIndexingService {
                     .score(keywordScore.getScore())
                     .frequency(keywordScore.getTotalFrequency())
                     .date(date)
-                    .createdAt(LocalDateTime.now())
-                    .lastUpdated(LocalDateTime.now())
+                    .createdAt(Instant.now())
+                    .lastUpdated(Instant.now())
                     .build();
 
             keyword.addSourceDataId(keywordScore.getDataId());

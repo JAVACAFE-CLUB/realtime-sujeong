@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -30,8 +30,8 @@ public class KeywordDocument {
     private LocalDate date;
     private List<String> sourceDataIds;
     private Set<String> sources;
-    private LocalDateTime createdAt;
-    private LocalDateTime lastUpdated;
+    private Instant createdAt;
+    private Instant lastUpdated;
 
     /**
      * Keyword 도메인 모델로 변환
