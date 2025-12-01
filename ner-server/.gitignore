@@ -26,7 +26,7 @@ htmlcov/
 *.swo
 
 # Model cache (HuggingFace downloads)
-models/
+/models/
 .cache/
 transformers_cache/
 
